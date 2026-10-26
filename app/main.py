@@ -1,17 +1,27 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+
+from app import models
+from app.database import Base, engine
+from app.routes import applications, businesses
 
 
-app = FastAPI()
+# Create database tables if they do not exist.
+Base.metadata.create_all(bind=engine)
 
-templates = Jinja2Templates(directory="app/templates")
+
+# Create the FastAPI application.
+app = FastAPI(title="Cairns Backpacker Jobs")
 
 
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse(
-        request=request,          # <-- Pasa request como argumento de palabra clave
-        name="index.html",        # <-- El nombre de la plantilla
-        context={}                # <-- Tus variables van aquí (puedes dejarlo vacío si no usas ninguna)
-    )
+# Serve CSS, JavaScript, and other static files.
+app.mount(
+    "/static",
+    StaticFiles(directory="app/static"),
+    name="static"
+)
+
+
+# Register application routes.
+app.include_router(businesses.router)
+app.include_router(applications.router)

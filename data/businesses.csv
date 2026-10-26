@@ -1,0 +1,5 @@
+name,category,manager_name,address,phone,email,website,email_verified
+Example Hotel,Hotel,John Smith,123 Example Street Cairns QLD,0400000000,john@example.com,https://example.com,true
+Example Restaurant,Restaurant,Maria Lopez,456 Example Street Cairns QLD,0411111111,maria@example.com,https://example.com,true
+Example Bar,Bar,,789 Example Street Cairns QLD,0422222222,bar@example.com,https://example.com,false
+Example Pub,Pub,Peter Brown,10 Example Road Cairns QLD,0433333333,peter@example.com,https://example.com,true

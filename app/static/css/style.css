@@ -1,0 +1,46 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 30px;
+    background: #f5f5f5;
+}
+
+header {
+    margin-bottom: 30px;
+}
+
+.business-card {
+    background: white;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+}
+
+.business-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.category-button {
+    padding: 10px 15px;
+    margin-right: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.category-button.active {
+    font-weight: bold;
+}
+
+#searchInput {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    margin-bottom: 25px;
+    box-sizing: border-box;
+}
+
+#continueButton {
+    padding: 12px 25px;
+    cursor: pointer;
+}

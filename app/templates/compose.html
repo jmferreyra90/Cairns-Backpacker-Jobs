@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Prepará tu postulación</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <header>
+
+        <h1>Prepará tu postulación</h1>
+
+        <p>
+            Revisá los lugares que seleccionaste
+            antes de preparar tu aplicación.
+        </p>
+
+    </header>
+
+
+    <main>
+
+        <h2>
+            {{ businesses|length }}
+            {% if businesses|length == 1 %}
+                lugar seleccionado
+            {% else %}
+                lugares seleccionados
+            {% endif %}
+        </h2>
+
+
+        {% for business in businesses %}
+
+            <article class="business-card">
+
+                <h3>
+                    {{ business.name }}
+                </h3>
+
+                <p>
+                    {{ category_labels.get(
+                        business.category,
+                        business.category
+                    ) }}
+                </p>
+
+                {% if business.address %}
+
+                    <p>
+                        📍 {{ business.address }}
+                    </p>
+
+                {% endif %}
+
+                {% if business.email %}
+
+                    <p>
+                        ✉️ {{ business.email }}
+                    </p>
+
+                {% endif %}
+
+                {% if business.manager_name %}
+
+                    <p>
+                        👤 Contacto:
+                        {{ business.manager_name }}
+                    </p>
+
+                {% endif %}
+
+            </article>
+
+        {% endfor %}
+
+
+        <br>
+
+
+        <a href="/">
+            ← Volver a buscar
+        </a>
+
+        <hr>
+
+        <section>
+
+            <h2>Tu postulación</h2>
+
+            <p>
+                En el próximo paso vas a poder subir tu CV
+                y preparar tu carta de presentación.
+            </p>
+
+
+            <div>
+
+                <h3>CV</h3>
+
+                <p>
+                    Todavía no subiste ningún archivo.
+                </p>
+
+            </div>
+
+
+            <div>
+
+                <h3>Carta de presentación</h3>
+
+                <p>
+                    Todavía no escribiste tu carta.
+                </p>
+
+            </div>
+
+
+            <button type="button" disabled>
+                Preparar emails
+            </button>
+
+        </section>
+
+
+    </main>
+
+</body>
+
+</html>

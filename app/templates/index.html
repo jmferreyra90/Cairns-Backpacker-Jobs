@@ -1,22 +1,361 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>Cairns Backpacker Jobs</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='css/style.css') }}"
+    >
+
 </head>
 
+ 
 <body>
 
-    <h1>Buscá trabajo en Cairns</h1>
+    <header>
 
-    <p>
-        Encontrá oportunidades de trabajo en hoteles,
-        restaurantes, bares y pubs de Cairns.
-    </p>
+        <h1>Buscá trabajo en Cairns</h1>
 
-    <button>Empezar</button>
+        <p>
+            Encontrá hoteles, restaurantes, bares y pubs
+            donde podés postularte.
+        </p>
+
+    </header>
+
+
+    <main>
+
+        <section>
+
+            <h2>Elegí dónde querés postularte</h2>
+
+
+            <div id="categoryFilters">
+
+                <button
+                    type="button"
+                    class="category-button active"
+                    data-category="All"
+                >
+                    Todos
+                </button>
+
+                <button
+                    type="button"
+                    class="category-button"
+                    data-category="Hotel"
+                >
+                    Hoteles
+                </button>
+
+                <button
+                    type="button"
+                    class="category-button"
+                    data-category="Restaurant"
+                >
+                    Restaurantes
+                </button>
+
+                <button
+                    type="button"
+                    class="category-button"
+                    data-category="Bar"
+                >
+                    Bares
+                </button>
+
+                <button
+                    type="button"
+                    class="category-button"
+                    data-category="Pub"
+                >
+                    Pubs
+                </button>
+
+            </div>
+
+
+            <br>
+
+
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Buscá un lugar..."
+            >
+
+
+        </section>
+
+
+        <section>
+
+            <h2>Lugares disponibles</h2>
+
+
+            <p>
+                <strong id="selectedCount">0</strong>
+                <span id="selectedLabel">lugares seleccionados</span>
+            </p>
+
+
+            <div id="businessList">
+
+
+                {% for business in businesses %}
+
+                    <article
+                        class="business-card"
+                        data-category="{{ business.category }}"
+                        data-name="{{ business.name | lower }}"
+                    >
+
+                        <label>
+
+                            <input
+                                type="checkbox"
+                                class="business-checkbox"
+                                value="{{ business.id }}"
+                            >
+
+                            <strong>
+                                {{ business.name }}
+                            </strong>
+
+                        </label>
+
+
+                        <p>
+                            {{ category_labels.get(
+                                business.category,
+                                business.category
+                            ) }}
+                        </p>
+
+
+                        {% if business.address %}
+
+                            <p>
+                                📍 {{ business.address }}
+                            </p>
+
+                        {% endif %}
+
+
+                        {% if business.email %}
+
+                            <p>
+                                ✉️ {{ business.email }}
+                            </p>
+
+                        {% endif %}
+
+
+                    </article>
+
+                    <hr>
+
+                {% endfor %}
+
+
+            </div>
+
+
+        </section>
+
+
+        <section>
+
+            <button
+                type="button"
+                id="continueButton"
+            >
+                Continuar
+            </button>
+
+        </section>
+
+
+    </main>
+
+
+    <script>
+
+        const checkboxes =
+            document.querySelectorAll(".business-checkbox");
+
+        const selectedCount =
+            document.getElementById("selectedCount");
+
+
+        function updateSelectedCount() {
+
+            const selected =
+                document.querySelectorAll(
+                    ".business-checkbox:checked"
+                ).length;
+
+            selectedCount.textContent = selected;
+
+            const selectedLabel =
+                document.getElementById("selectedLabel");
+
+            if (selected === 1) {
+                selectedLabel.textContent =
+                    "lugar seleccionado";
+            } else {
+                selectedLabel.textContent =
+                    "lugares seleccionados";
+            }
+        }
+        
+
+
+        checkboxes.forEach(function(checkbox) {
+
+            checkbox.addEventListener(
+                "change",
+                updateSelectedCount
+            );
+
+        });
+
+        const searchInput =
+            document.getElementById("searchInput");
+
+        const businessCards =
+            document.querySelectorAll(".business-card");
+
+
+        searchInput.addEventListener("input", function() {
+
+            const searchTerm =
+                searchInput.value.toLowerCase().trim();
+
+
+            businessCards.forEach(function(card) {
+
+                const businessName =
+                    card.dataset.name;
+
+
+                if (businessName.includes(searchTerm)) {
+
+                    card.style.display = "";
+
+                } else {
+
+                    card.style.display = "none";
+
+                }
+
+            });
+
+        });
+
+        const categoryButtons =
+            document.querySelectorAll(".category-button");
+
+
+        categoryButtons.forEach(function(button) {
+
+            button.addEventListener("click", function() {
+
+                const selectedCategory =
+                    button.dataset.category;
+
+
+                categoryButtons.forEach(function(otherButton) {
+
+                    otherButton.classList.remove("active");
+
+                });
+
+
+                button.classList.add("active");
+
+
+                businessCards.forEach(function(card) {
+
+                    const cardCategory =
+                        card.dataset.category;
+
+
+                    if (
+                        selectedCategory === "All" ||
+                        cardCategory === selectedCategory
+                    ) {
+
+                        card.style.display = "";
+
+                    } else {
+
+                        card.style.display = "none";
+
+                    }
+
+                });
+
+            });
+
+        });
+
+        const continueButton =
+            document.getElementById("continueButton");
+
+
+        continueButton.addEventListener(
+            "click",
+            function() {
+
+                const selectedCheckboxes =
+                    document.querySelectorAll(
+                        ".business-checkbox:checked"
+                    );
+
+
+                if (selectedCheckboxes.length === 0) {
+
+                    alert(
+                        "Seleccioná al menos un lugar para continuar."
+                    );
+
+                    return;
+                }
+
+
+                const selectedIds =
+                    Array.from(selectedCheckboxes)
+                        .map(function(checkbox) {
+                            return checkbox.value;
+                        });
+
+
+                const ids =
+                    selectedIds.join(",");
+
+
+                window.location.href =
+                    `/compose?ids=${ids}`;
+
+            }
+        );
+
+
+    </script>
+
 
 </body>
+
 </html>
