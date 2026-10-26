@@ -1,0 +1,95 @@
+
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Revisá tu postulación</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', path='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+<header>
+    <h1>Revisá tu postulación</h1>
+
+    <p>
+        Tus datos fueron recibidos y validados correctamente.
+    </p>
+</header>
+
+<main>
+
+    <section class="business-card">
+
+        <h2>Tus datos</h2>
+
+        <p><strong>Nombre:</strong> {{ full_name }}</p>
+
+        {% if phone %}
+            <p><strong>Teléfono:</strong> {{ phone }}</p>
+        {% endif %}
+
+        <p>
+            <strong>CV:</strong> {{ cv_filename }}
+            ({{ cv_size }} KB)
+        </p>
+
+    </section>
+
+
+    <section class="business-card">
+
+        <h2>Tu email</h2>
+
+        <p><strong>Asunto:</strong> {{ subject }}</p>
+
+        <h3>Carta de presentación</h3>
+
+        <div class="letter-preview">{{ cover_letter }}</div>
+
+    </section>
+
+
+    <section>
+
+        <h2>Destinatarios: {{ businesses|length }}</h2>
+
+        {% for business in businesses %}
+            <article class="business-card">
+                <h3>{{ business.name }}</h3>
+                <p>{{ business.email }}</p>
+            </article>
+        {% endfor %}
+
+    </section>
+
+
+    <section class="business-card">
+
+        <h3>Postulación de prueba</h3>
+
+        <p>
+            Todavía no se envió ningún email.
+            El CV fue validado, pero no se guardó.
+        </p>
+
+        <p>
+            Más adelante vas a poder revisar
+            cada email personalizado antes de enviarlo.
+        </p>
+
+        <a href="/">Volver al inicio</a>
+
+    </section>
+
+</main>
+
+</body>
+</html>

@@ -44,3 +44,63 @@ header {
     padding: 12px 25px;
     cursor: pointer;
 }
+
+
+/* Application form */
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 22px;
+}
+
+.form-field label {
+    font-weight: bold;
+}
+
+.form-field input,
+.form-field textarea {
+    padding: 12px;
+    font: inherit;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-field textarea {
+    resize: vertical;
+}
+
+.form-field small {
+    color: #666;
+}
+
+.form-error {
+    color: #b00020;
+    font-weight: bold;
+}
+
+.letter-preview {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+section {
+    margin-bottom: 30px;
+}
+
+button[type="submit"] {
+    padding: 14px 24px;
+    background: #1769aa;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button[type="submit"]:hover {
+    background: #115184;
+}

@@ -19,7 +19,11 @@ def home(request: Request):
 
         businesses = (
             db.query(Business)
-            .filter(Business.active.is_(True))
+            .filter(
+                Business.active.is_(True),
+                Business.email.is_not(None),
+                Business.email != "",
+            )
             .order_by(Business.name)
             .all()
         )

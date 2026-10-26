@@ -1,14 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Prepará tu postulación</title>
 
@@ -16,131 +12,142 @@
         rel="stylesheet"
         href="{{ url_for('static', path='css/style.css') }}"
     >
-
 </head>
-
 
 <body>
 
-    <header>
+<header>
+    <h1>Prepará tu postulación</h1>
+    <p>Completá tus datos y prepará tu solicitud de trabajo.</p>
+</header>
 
-        <h1>Prepará tu postulación</h1>
+<main>
 
-        <p>
-            Revisá los lugares que seleccionaste
-            antes de preparar tu aplicación.
-        </p>
-
-    </header>
-
-
-    <main>
-
-        <h2>
-            {{ businesses|length }}
-            {% if businesses|length == 1 %}
-                lugar seleccionado
-            {% else %}
-                lugares seleccionados
-            {% endif %}
-        </h2>
-
+    <section>
+        <h2>Lugares seleccionados: {{ businesses|length }}</h2>
 
         {% for business in businesses %}
-
             <article class="business-card">
-
-                <h3>
-                    {{ business.name }}
-                </h3>
-
-                <p>
-                    {{ category_labels.get(
-                        business.category,
-                        business.category
-                    ) }}
-                </p>
-
-                {% if business.address %}
-
-                    <p>
-                        📍 {{ business.address }}
-                    </p>
-
-                {% endif %}
-
-                {% if business.email %}
-
-                    <p>
-                        ✉️ {{ business.email }}
-                    </p>
-
-                {% endif %}
-
-                {% if business.manager_name %}
-
-                    <p>
-                        👤 Contacto:
-                        {{ business.manager_name }}
-                    </p>
-
-                {% endif %}
-
+                <h3>{{ business.name }}</h3>
+                <p>{{ category_labels.get(business.category, business.category) }}</p>
+                <p>{{ business.email }}</p>
             </article>
-
         {% endfor %}
+    </section>
 
+    {% if not businesses %}
 
-        <br>
+        <p>No hay lugares válidos para esta postulación.</p>
+        <a href="/">Volver a buscar</a>
 
-
-        <a href="/">
-            ← Volver a buscar
-        </a>
-
-        <hr>
+    {% else %}
 
         <section>
 
-            <h2>Tu postulación</h2>
+            <h2>Tu información</h2>
 
-            <p>
-                En el próximo paso vas a poder subir tu CV
-                y preparar tu carta de presentación.
-            </p>
+            {% if error %}
+                <p class="form-error" role="alert">{{ error }}</p>
+            {% endif %}
 
+            <form
+                action="/compose/review"
+                method="post"
+                enctype="multipart/form-data"
+            >
 
-            <div>
+                <input
+                    type="hidden"
+                    name="business_ids"
+                    value="{{ business_ids }}"
+                >
 
-                <h3>CV</h3>
+                <div class="form-field">
+                    <label for="full_name">Nombre y apellido</label>
 
-                <p>
-                    Todavía no subiste ningún archivo.
-                </p>
+                    <input
+                        type="text"
+                        id="full_name"
+                        name="full_name"
+                        value="{{ form_values.get('full_name', '') }}"
+                        maxlength="100"
+                        required
+                    >
+                </div>
 
-            </div>
+                <div class="form-field">
+                    <label for="phone">Teléfono (opcional)</label>
 
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value="{{ form_values.get('phone', '') }}"
+                        maxlength="40"
+                        placeholder="+61..."
+                    >
+                </div>
 
-            <div>
+                <div class="form-field">
+                    <label for="cv">Subí tu CV</label>
 
-                <h3>Carta de presentación</h3>
+                    <input
+                        type="file"
+                        id="cv"
+                        name="cv"
+                        accept=".pdf,.docx"
+                        required
+                    >
 
-                <p>
-                    Todavía no escribiste tu carta.
-                </p>
+                    <small>Formato PDF o DOCX. Máximo 5 MB.</small>
+                </div>
 
-            </div>
+                <div class="form-field">
+                    <label for="subject">Asunto del email</label>
 
+                    <input
+                        type="text"
+                        id="subject"
+                        name="subject"
+                        value="{{ form_values.get('subject', 'Job Application - Hospitality Work') }}"
+                        maxlength="150"
+                        required
+                    >
+                </div>
 
-            <button type="button" disabled>
-                Preparar emails
-            </button>
+                <div class="form-field">
+                    <label for="cover_letter">Carta de presentación</label>
+
+                    <textarea
+                        id="cover_letter"
+                        name="cover_letter"
+                        rows="10"
+                        maxlength="4000"
+                        placeholder="Hi, my name is..."
+                        required
+                    >{{ form_values.get('cover_letter', '') }}</textarea>
+
+                    <small>
+                        Te recomendamos escribir tu carta en inglés.
+                        Podés usar párrafos y saltos de línea.
+                    </small>
+                </div>
+
+                <button type="submit" id="continueButton">
+                    Revisar postulación
+                </button>
+
+            </form>
 
         </section>
 
+        <p>
+            <a href="/">← Cambiar lugares seleccionados</a>
+        </p>
 
-    </main>
+    {% endif %}
+
+</main>
 
 </body>
-
 </html>
