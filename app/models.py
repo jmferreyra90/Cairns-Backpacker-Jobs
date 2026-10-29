@@ -5,6 +5,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
 
+from datetime import datetime, timezone
+from sqlalchemy import DateTime, UniqueConstraint
+
 
 class Business(Base):
     __tablename__ = "businesses"
@@ -63,4 +66,61 @@ class Business(Base):
     active: Mapped[bool] = mapped_column(
         Boolean,
         default=True
+    )
+
+
+class ApplicantContact(Base):
+    __tablename__ = "applicant_contacts"
+
+    __table_args__ = (
+        UniqueConstraint("email", name="uq_applicant_email"),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True
+    )
+
+    full_name: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )
+
+    email: Mapped[str] = mapped_column(
+        String(254), nullable=False, index=True
+    )
+
+    phone: Mapped[str] = mapped_column(
+        String(40), nullable=False
+    )
+
+    marketing_opt_in: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
+    feedback_opt_in: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
+
+    marketing_consented_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    feedback_consented_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    privacy_notice_version: Mapped[str] = mapped_column(
+        String(30), nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False
     )

@@ -76,7 +76,21 @@
                 </div>
 
                 <div class="form-field">
-                    <label for="phone">Teléfono (opcional)</label>
+                    <label for="email">Tu email</label>
+
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value="{{ form_values.get('email', '') }}"
+                        maxlength="254"
+                        placeholder="tuemail@gmail.com"
+                        required
+                    >
+                </div>
+
+                <div class="form-field">
+                    <label for="phone">Teléfono</label>
 
                     <input
                         type="tel"
@@ -85,6 +99,7 @@
                         value="{{ form_values.get('phone', '') }}"
                         maxlength="40"
                         placeholder="+61..."
+                        required
                     >
                 </div>
 
@@ -128,10 +143,68 @@
                     >{{ form_values.get('cover_letter', '') }}</textarea>
 
                     <small>
-                        Te recomendamos escribir tu carta en inglés.
-                        Podés usar párrafos y saltos de línea.
+                        Escribí el cuerpo de tu carta en inglés.
+                        Nosotros agregaremos automáticamente un saludo
+                        personalizado y tu firma.
+                        Podés usar [Business Name] para mencionar cada lugar.
                     </small>
                 </div>
+
+                <section class="privacy-section">
+
+                    <h3>Privacidad y comunicaciones</h3>
+
+                    <p>
+                        Guardaremos tu nombre, email y teléfono para gestionar
+                        tus postulaciones y tu registro de contacto.
+                        Las comunicaciones promocionales y las invitaciones
+                        para dar tu opinión son opcionales.
+                    </p>
+
+                    <p>
+                        <a href="/privacidad" target="_blank" rel="noopener noreferrer">
+                            Leer la política de privacidad
+                        </a>
+                    </p>
+
+                    <label class="checkbox-label">
+                        <input
+                            type="checkbox"
+                            name="privacy_acknowledged"
+                            value="true"
+                            checked
+                            required
+                            {% if form_values.get('privacy_acknowledged') %}checked{% endif %}
+                        >
+                        Leí la información sobre el uso de mis datos personales.
+                    </label>
+
+                    <label class="checkbox-label">
+                        <input
+                            type="checkbox"
+                            name="marketing_opt_in"
+                            value="true"
+                            checked
+                            {% if form_values.get('marketing_opt_in') %}checked{% endif %}
+                        >
+                        Quiero recibir novedades, consejos y comunicaciones
+                        promocionales por email.
+                    </label>
+
+                    <label class="checkbox-label">
+                        <input
+                            type="checkbox"
+                            name="feedback_opt_in"
+                            value="true"
+                            checked
+                            {% if form_values.get('feedback_opt_in') %}checked{% endif %}
+                        >
+                        Acepto recibir invitaciones por email para dar
+                        mi opinión sobre la aplicación.
+                    </label>
+
+                </section>
+
 
                 <button type="submit" id="continueButton">
                     Revisar postulación

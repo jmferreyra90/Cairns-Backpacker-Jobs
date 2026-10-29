@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Revisá tu postulación</title>
+    <title>Revisá tus emails</title>
 
     <link
         rel="stylesheet"
@@ -17,10 +17,10 @@
 <body>
 
 <header>
-    <h1>Revisá tu postulación</h1>
-
+    <h1>Revisá tus postulaciones</h1>
     <p>
-        Tus datos fueron recibidos y validados correctamente.
+        Estos son los mensajes preparados para los lugares
+        que seleccionaste.
     </p>
 </header>
 
@@ -31,65 +31,154 @@
         <h2>Tus datos</h2>
 
         <p><strong>Nombre:</strong> {{ full_name }}</p>
-
-        {% if phone %}
-            <p><strong>Teléfono:</strong> {{ phone }}</p>
-        {% endif %}
+        <p><strong>Email:</strong> {{ email }}</p>
+        <p><strong>Teléfono:</strong> {{ phone }}</p>
+        <p><strong>CV:</strong> {{ cv_filename }}</p>
 
         <p>
-            <strong>CV:</strong> {{ cv_filename }}
-            ({{ cv_size }} KB)
+            <strong>Marketing:</strong>
+            {{ "Autorizado" if marketing_opt_in else "No autorizado" }}
         </p>
 
-    </section>
-
-
-    <section class="business-card">
-
-        <h2>Tu email</h2>
-
-        <p><strong>Asunto:</strong> {{ subject }}</p>
-
-        <h3>Carta de presentación</h3>
-
-        <div class="letter-preview">{{ cover_letter }}</div>
+        <p>
+            <strong>Feedback:</strong>
+            {{ "Autorizado" if feedback_opt_in else "No autorizado" }}
+        </p>
 
     </section>
 
 
     <section>
 
-        <h2>Destinatarios: {{ businesses|length }}</h2>
+        <h2>Vista previa de tus emails</h2>
 
-        {% for business in businesses %}
-            <article class="business-card">
-                <h3>{{ business.name }}</h3>
-                <p>{{ business.email }}</p>
+        <p id="previewCounter"></p>
+
+        {% for preview in previews %}
+
+            <article
+                class="business-card email-preview"
+                {% if not loop.first %}hidden{% endif %}
+            >
+
+                <h3>{{ preview.business_name }}</h3>
+
+                <p>
+                    <strong>Para:</strong> {{ preview.to }}
+                </p>
+
+                <p>
+                    <strong>Asunto:</strong> {{ preview.subject }}
+                </p>
+
+                <hr>
+
+                <div class="letter-preview">{{ preview.body }}</div>
+
+                <hr>
+
+                <p><strong>Adjunto previsto:</strong> {{ cv_filename }}</p>
+
             </article>
+
         {% endfor %}
+
+
+        <div class="preview-navigation">
+
+            <button type="button" id="previousButton">
+                ← Anterior
+            </button>
+
+            <button type="button" id="nextButton">
+                Siguiente →
+            </button>
+
+        </div>
 
     </section>
 
 
     <section class="business-card">
 
-        <h3>Postulación de prueba</h3>
+        <h3>¡Tus emails están preparados!</h3>
 
         <p>
-            Todavía no se envió ningún email.
-            El CV fue validado, pero no se guardó.
+            Guardamos tus datos de contacto y generamos
+            {{ previews|length }} vistas previas.
         </p>
 
         <p>
-            Más adelante vas a poder revisar
-            cada email personalizado antes de enviarlo.
+            Todavía no enviamos ningún email.
+            Tu CV no fue guardado: cuando habilitemos
+            el envío, necesitaremos conservarlo temporalmente
+            durante ese proceso.
         </p>
 
-        <a href="/">Volver al inicio</a>
+        <p>
+            <a href="/">Volver al inicio</a>
+        </p>
 
     </section>
 
 </main>
+
+
+<script>
+
+    const emailPreviews =
+        document.querySelectorAll(".email-preview");
+
+    const previewCounter =
+        document.getElementById("previewCounter");
+
+    const previousButton =
+        document.getElementById("previousButton");
+
+    const nextButton =
+        document.getElementById("nextButton");
+
+    let currentPreview = 0;
+
+
+    function showPreview(index) {
+
+        currentPreview = index;
+
+        emailPreviews.forEach(function(preview, position) {
+            preview.hidden = position !== currentPreview;
+        });
+
+        previewCounter.textContent =
+            `Email ${currentPreview + 1} de ${emailPreviews.length}`;
+
+        previousButton.disabled = currentPreview === 0;
+
+        nextButton.disabled =
+            currentPreview === emailPreviews.length - 1;
+
+    }
+
+
+    previousButton.addEventListener("click", function() {
+        if (currentPreview > 0) {
+            showPreview(currentPreview - 1);
+        }
+    });
+
+
+    nextButton.addEventListener("click", function() {
+        if (currentPreview < emailPreviews.length - 1) {
+            showPreview(currentPreview + 1);
+        }
+    });
+
+
+    if (emailPreviews.length > 0) {
+        showPreview(0);
+    }
+
+</script>
 
 </body>
 </html>
