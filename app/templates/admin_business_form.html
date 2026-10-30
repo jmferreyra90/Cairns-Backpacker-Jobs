@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ 'Editar' if business else 'Agregar' }} negocio</title>
+<link rel="stylesheet" href="{{ url_for('static',path='css/style.css') }}">
+<style>.form-field{display:flex;flex-direction:column;gap:5px;margin:12px 0}.form-field input,.form-field select,.form-field textarea{padding:10px;border:1px solid #bbb;border-radius:5px;width:100%;box-sizing:border-box}label{font-weight:500}.warn{padding:12px;background:#fff1dd;border-radius:6px}.ready{padding:12px;background:#e9f4e7;border-radius:6px}</style>
+</head><body>
+<p><a href="/admin/businesses">← Directorio</a></p>
+<h1>{{ 'Editar negocio' if business else 'Agregar negocio' }}</h1>
+{% if error %}<p role="alert">{{ error }}</p>{% endif %}
+<p class="warn">Guardar cambios <strong>retira cualquier aprobación previa</strong>. Para permitir envíos reales, tenés que aprobar el contacto nuevamente después de revisar la fuente.</p>
+<form method="post" action="/admin/businesses/save">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<input type="hidden" name="business_id" value="{{ business.id if business else 0 }}">
+<div class="form-field"><label>Nombre*</label><input name="name" maxlength="150" required value="{{ business.name if business else '' }}"></div>
+<div class="form-field"><label>Categoría*</label><select name="category">{% for cat in categories %}<option value="{{ cat }}" {% if business and business.category==cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}</select></div>
+<div class="form-field"><label>Nombre de gerente/contacto, si se publicó profesionalmente</label><input name="manager_name" maxlength="150" value="{{ business.manager_name if business and business.manager_name else '' }}"></div>
+<div class="form-field"><label>Dirección</label><input name="address" maxlength="250" value="{{ business.address if business and business.address else '' }}"></div>
+<div class="form-field"><label>Teléfono</label><input name="phone" maxlength="50" value="{{ business.phone if business and business.phone else '' }}"></div>
+<div class="form-field"><label>Email para postulaciones (dejar vacío si no está confirmado)</label><input name="email" type="email" maxlength="150" value="{{ business.email if business and business.email else '' }}"></div>
+<div class="form-field"><label>Website</label><input name="website" type="url" maxlength="250" value="{{ business.website if business and business.website else '' }}"></div>
+<div class="form-field"><label>URL de la fuente (obligatoria para aprobar email)</label><input name="source_url" type="url" maxlength="500" value="{{ review.source_url if review and review.source_url else '' }}"></div>
+<div class="form-field"><label>Notas de revisión (por qué este contacto acepta postulaciones)</label><textarea name="evidence" rows="3" maxlength="1500">{{ review.evidence if review and review.evidence else '' }}</textarea></div>
+<div class="form-field"><label>Estado actual (los emails aptos se aprueban por separado)</label><select name="status_choice">{% for status,label in statuses.items() if status != 'approved' %}<option value="{{ status }}" {% if review and review.status==status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<label><input type="checkbox" name="active" value="true" {% if not business or business.active %}checked{% endif %}> Mostrar negocio en la web</label>
+<p><button type="submit">Guardar negocio</button></p>
+</form>
+{% if business %}
+<hr><h2>Verificación del email</h2>
+<p>Estado: <strong>{{ statuses.get(review.status if review else 'pending') }}</strong>. Email verificado: {{ 'Sí' if business.email_verified else 'No' }}. Fecha: {{ business.last_verified or '—' }}</p>
+{% if review and review.status=='approved' %}<p class="ready">Revisado para recibir postulaciones por email. Se revisará nuevamente antes de cada envío real.</p>{% endif %}
+<p>Solo aprobá contactos públicos destinados a recepción de CVs, o que el negocio haya confirmado expresamente para este fin. No alcanza con que el email figure en una web.</p>
+<form method="post" action="/admin/businesses/{{ business.id }}/approve">
+<input type="hidden" name="csrf" value="{{ csrf }}">
+<label><input type="checkbox" name="confirmation" value="true" required> Confirmé que este email es un canal adecuado para postulaciones, y documenté la evidencia arriba.</label>
+<p><button type="submit">Aprobar contacto para postulaciones</button></p>
+</form>
+{% endif %}
+</body></html>

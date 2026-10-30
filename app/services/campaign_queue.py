@@ -8,6 +8,7 @@ from time import time
 from app.database import SessionLocal
 from app.models import Business
 from app.models_campaign import Campaign, CampaignAttempt, now_utc
+from app.models_directory import BusinessContactReview
 from app.services.email_builder import build_email_preview
 from app.services.mail_api import SendFailure, send_employer_application
 from app.services.session_store import clear, get_connection, get_draft
@@ -62,6 +63,9 @@ def preflight_real(db, draft, connection, businesses) -> str | None:
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=90)
     for business in businesses:
+        review = db.get(BusinessContactReview, business.id)
+        if not review or review.status != "approved":
+            return f"{business.name}: contacto pendiente de aprobación para recibir postulaciones."
         email = (business.email or "").strip().lower()
         domain = email.rsplit("@", 1)[-1] if "@" in email else ""
         if domain in {"example.com", "example.org", "example.net", "localhost", "invalid", "test"}:
@@ -154,9 +158,12 @@ async def run_campaign(campaign_id: str, sid: str) -> None:
             with SessionLocal() as db:
                 attempt = db.get(CampaignAttempt, attempt_id)
                 business = db.get(Business, attempt.business_id)
-                # Re-check unchanged recipient and status immediately before sending.
+                # Re-check unchanged recipient and admin approval immediately before each send.
+                review = db.get(BusinessContactReview, attempt.business_id) if mode == "real" else None
                 if (not business or not business.active or business.email != attempt.recipient_email or
-                    (mode == "real" and (not business.email_verified or not business.last_verified or
+                    (mode == "real" and (
+                     not review or review.status != "approved" or
+                     not business.email_verified or not business.last_verified or
                      business.last_verified < (datetime.now(timezone.utc) - timedelta(days=90)).date()))):
                     attempt.status = "failed"
                     attempt.note = "Destinatario cambió o ya no está verificado."

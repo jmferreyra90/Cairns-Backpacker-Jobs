@@ -7,9 +7,9 @@ from starlette.middleware.sessions import SessionMiddleware
 
 load_dotenv()
 
-from app import models, models_campaign  # noqa: E402 - register SQLAlchemy models
+from app import models, models_campaign, models_directory  # noqa: E402 - register SQLAlchemy models
 from app.database import Base, engine  # noqa: E402
-from app.routes import applications, businesses, mail_auth, campaigns  # noqa: E402
+from app.routes import applications, businesses, mail_auth, campaigns, admin_businesses  # noqa: E402
 
 secret = os.getenv("APP_SESSION_SECRET", "")
 if len(secret) < 32:
@@ -32,6 +32,7 @@ app.include_router(businesses.router)
 app.include_router(applications.router)
 app.include_router(mail_auth.router)
 app.include_router(campaigns.router)
+app.include_router(admin_businesses.router)
 
 # Local single-process recovery: a server restart cannot resume an in-memory
 # CV/OAuth token. Mark incomplete rows so they are never silently resent.

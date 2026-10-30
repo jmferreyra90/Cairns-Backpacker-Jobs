@@ -1,361 +1,97 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Cairns Backpacker Jobs</title>
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', path='css/style.css') }}"
-    >
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Buscá trabajo en Cairns</title>
+  <link rel="stylesheet" href="{{ url_for('static',path='css/style.css') }}">
+  <style>
+    .filters{display:flex;gap:7px;flex-wrap:wrap;margin:16px 0}
+    .filters button{padding:9px 12px;cursor:pointer}
+    .filters button.active{background:#1769aa;color:white;border-radius:5px}
+    .business-card[hidden]{display:none}
+    .muted{color:#666}
+    .selection-bar{position:sticky;bottom:0;background:white;border:1px solid #ddd;padding:12px;margin-top:16px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .search{width:100%;padding:12px;box-sizing:border-box}
+    .business-card{margin:10px 0}
+  </style>
 </head>
-
- 
 <body>
-
-    <header>
-
-        <h1>Buscá trabajo en Cairns</h1>
-
-        <p>
-            Encontrá hoteles, restaurantes, bares y pubs
-            donde podés postularte.
-        </p>
-
-    </header>
-
-
-    <main>
-
-        <section>
-
-            <h2>Elegí dónde querés postularte</h2>
-
-
-            <div id="categoryFilters">
-
-                <button
-                    type="button"
-                    class="category-button active"
-                    data-category="All"
-                >
-                    Todos
-                </button>
-
-                <button
-                    type="button"
-                    class="category-button"
-                    data-category="Hotel"
-                >
-                    Hoteles
-                </button>
-
-                <button
-                    type="button"
-                    class="category-button"
-                    data-category="Restaurant"
-                >
-                    Restaurantes
-                </button>
-
-                <button
-                    type="button"
-                    class="category-button"
-                    data-category="Bar"
-                >
-                    Bares
-                </button>
-
-                <button
-                    type="button"
-                    class="category-button"
-                    data-category="Pub"
-                >
-                    Pubs
-                </button>
-
-            </div>
-
-
-            <br>
-
-
-            <input
-                type="text"
-                id="searchInput"
-                placeholder="Buscá un lugar..."
-            >
-
-
-        </section>
-
-
-        <section>
-
-            <h2>Lugares disponibles</h2>
-
-
-            <p>
-                <strong id="selectedCount">0</strong>
-                <span id="selectedLabel">lugares seleccionados</span>
-            </p>
-
-
-            <div id="businessList">
-
-
-                {% for business in businesses %}
-
-                    <article
-                        class="business-card"
-                        data-category="{{ business.category }}"
-                        data-name="{{ business.name | lower }}"
-                    >
-
-                        <label>
-
-                            <input
-                                type="checkbox"
-                                class="business-checkbox"
-                                value="{{ business.id }}"
-                            >
-
-                            <strong>
-                                {{ business.name }}
-                            </strong>
-
-                        </label>
-
-
-                        <p>
-                            {{ category_labels.get(
-                                business.category,
-                                business.category
-                            ) }}
-                        </p>
-
-
-                        {% if business.address %}
-
-                            <p>
-                                📍 {{ business.address }}
-                            </p>
-
-                        {% endif %}
-
-
-                        {% if business.email %}
-
-                            <p>
-                                ✉️ {{ business.email }}
-                            </p>
-
-                        {% endif %}
-
-
-                    </article>
-
-                    <hr>
-
-                {% endfor %}
-
-
-            </div>
-
-
-        </section>
-
-
-        <section>
-
-            <button
-                type="button"
-                id="continueButton"
-            >
-                Continuar
-            </button>
-
-        </section>
-
-
-    </main>
-
-
-    <script>
-
-        const checkboxes =
-            document.querySelectorAll(".business-checkbox");
-
-        const selectedCount =
-            document.getElementById("selectedCount");
-
-
-        function updateSelectedCount() {
-
-            const selected =
-                document.querySelectorAll(
-                    ".business-checkbox:checked"
-                ).length;
-
-            selectedCount.textContent = selected;
-
-            const selectedLabel =
-                document.getElementById("selectedLabel");
-
-            if (selected === 1) {
-                selectedLabel.textContent =
-                    "lugar seleccionado";
-            } else {
-                selectedLabel.textContent =
-                    "lugares seleccionados";
-            }
-        }
-        
-
-
-        checkboxes.forEach(function(checkbox) {
-
-            checkbox.addEventListener(
-                "change",
-                updateSelectedCount
-            );
-
-        });
-
-        const searchInput =
-            document.getElementById("searchInput");
-
-        const businessCards =
-            document.querySelectorAll(".business-card");
-
-
-        searchInput.addEventListener("input", function() {
-
-            const searchTerm =
-                searchInput.value.toLowerCase().trim();
-
-
-            businessCards.forEach(function(card) {
-
-                const businessName =
-                    card.dataset.name;
-
-
-                if (businessName.includes(searchTerm)) {
-
-                    card.style.display = "";
-
-                } else {
-
-                    card.style.display = "none";
-
-                }
-
-            });
-
-        });
-
-        const categoryButtons =
-            document.querySelectorAll(".category-button");
-
-
-        categoryButtons.forEach(function(button) {
-
-            button.addEventListener("click", function() {
-
-                const selectedCategory =
-                    button.dataset.category;
-
-
-                categoryButtons.forEach(function(otherButton) {
-
-                    otherButton.classList.remove("active");
-
-                });
-
-
-                button.classList.add("active");
-
-
-                businessCards.forEach(function(card) {
-
-                    const cardCategory =
-                        card.dataset.category;
-
-
-                    if (
-                        selectedCategory === "All" ||
-                        cardCategory === selectedCategory
-                    ) {
-
-                        card.style.display = "";
-
-                    } else {
-
-                        card.style.display = "none";
-
-                    }
-
-                });
-
-            });
-
-        });
-
-        const continueButton =
-            document.getElementById("continueButton");
-
-
-        continueButton.addEventListener(
-            "click",
-            function() {
-
-                const selectedCheckboxes =
-                    document.querySelectorAll(
-                        ".business-checkbox:checked"
-                    );
-
-
-                if (selectedCheckboxes.length === 0) {
-
-                    alert(
-                        "Seleccioná al menos un lugar para continuar."
-                    );
-
-                    return;
-                }
-
-
-                const selectedIds =
-                    Array.from(selectedCheckboxes)
-                        .map(function(checkbox) {
-                            return checkbox.value;
-                        });
-
-
-                const ids =
-                    selectedIds.join(",");
-
-
-                window.location.href =
-                    `/compose?ids=${ids}`;
-
-            }
-        );
-
-
-    </script>
-
-
+  <header>
+    <h1>Buscá trabajo en Cairns</h1>
+    <p>Explorá lugares reales, elegí dónde querés postularte y prepará tu CV.</p>
+    <p class="muted">Los lugares sin contacto por email todavía no se pueden seleccionar. Tener un email publicado no significa que esté aprobado para enviar postulaciones reales.</p>
+  </header>
+  <main>
+    <label for="searchInput">Buscar un lugar</label>
+    <input id="searchInput" class="search" type="search" placeholder="Nombre del hotel, bar, restaurante...">
+    <div class="filters" id="filters">
+      <button type="button" data-category="All" class="active">Todos</button>
+      {% for cat, text in category_labels.items() %}
+      <button type="button" data-category="{{ cat }}">{{ text }}</button>
+      {% endfor %}
+    </div>
+    <p id="displayCount"></p>
+    <div id="businessList">
+      {% for item in rows %}
+      {% set b = item.business %}
+      <article class="business-card" data-category="{{ b.category }}" data-name="{{ b.name|lower }}">
+        <label>
+          <input type="checkbox" class="business-checkbox" value="{{ b.id }}" {% if not item.selectable %}disabled{% endif %}>
+          <strong>{{ b.name }}</strong>
+        </label>
+        <p>{{ category_labels.get(b.category,b.category) }}{% if b.address %} · {{ b.address }}{% endif %}</p>
+        {% if item.selectable %}
+          <p class="muted">{{ 'Contacto revisado para postulaciones' if item.status == 'approved' else 'Contacto disponible; pendiente de revisión para envío real' }}</p>
+        {% else %}
+          <p class="muted">Contacto de postulación no disponible por email</p>
+        {% endif %}
+      </article>
+      {% else %}
+        <p>No hay negocios cargados todavía.</p>
+      {% endfor %}
+    </div>
+    <div class="selection-bar">
+      <strong><span id="selectedCount">0</span> <span id="selectedLabel">lugares seleccionados</span></strong>
+      <button id="continueButton" type="button">Continuar →</button>
+    </div>
+    <p><a href="/mis-postulaciones">Mis postulaciones</a></p>
+  </main>
+<script>
+  const cards=[...document.querySelectorAll('.business-card')];
+  const boxes=[...document.querySelectorAll('.business-checkbox')];
+  const buttons=[...document.querySelectorAll('[data-category]')].filter(el=>el.tagName==='BUTTON');
+  const search=document.getElementById('searchInput');
+  let category='All';
+  function filterCards(){
+    let visible=0;const term=search.value.trim().toLocaleLowerCase();
+    cards.forEach(card=>{
+      const ok=(category==='All'||card.dataset.category===category)&&card.dataset.name.includes(term);
+      card.hidden=!ok;if(ok)visible++;
+    });
+    document.getElementById('displayCount').textContent=`${visible} lugares encontrados`;
+  }
+  buttons.forEach(button=>button.addEventListener('click',()=>{
+    category=button.dataset.category;
+    buttons.forEach(b=>b.classList.toggle('active',b===button));
+    filterCards();
+  }));
+  search.addEventListener('input',filterCards);
+  function updateSelection(){
+    const n=boxes.filter(b=>b.checked).length;
+    document.getElementById('selectedCount').textContent=n;
+    document.getElementById('selectedLabel').textContent=n===1?'lugar seleccionado':'lugares seleccionados';
+  }
+  boxes.forEach(box=>box.addEventListener('change',()=>{
+    if(boxes.filter(b=>b.checked).length>10){box.checked=false;alert('Máximo 10 lugares por campaña.');}
+    updateSelection();
+  }));
+  document.getElementById('continueButton').addEventListener('click',()=>{
+    const ids=boxes.filter(b=>b.checked).map(b=>b.value);
+    if(!ids.length){alert('Seleccioná al menos un lugar con email para continuar.');return;}
+    window.location.href='/compose?ids='+encodeURIComponent(ids.join(','));
+  });
+  filterCards();updateSelection();
+</script>
 </body>
-
 </html>
