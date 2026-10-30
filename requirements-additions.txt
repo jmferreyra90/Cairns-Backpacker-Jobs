@@ -1,4 +1,1 @@
-authlib
-httpx
-python-dotenv
-itsdangerous
+psycopg[binary]>=3.2,<4

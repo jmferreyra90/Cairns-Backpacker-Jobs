@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Buscá trabajo en Cairns — Vista previa</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+  <style>
+    .preview-notice{padding:16px;background:#e7f1fb;border-left:4px solid #1769aa;border-radius:6px;margin:18px 0}
+    .search{width:100%;padding:12px;box-sizing:border-box}
+    .filters{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+    .filters button{padding:9px 12px;cursor:pointer}
+    .filters button.active{font-weight:bold;background:#1769aa;color:white}
+    .business-card[hidden]{display:none}
+    .muted{color:#666}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Buscá trabajo en Cairns</h1>
+    <p>Explorá hoteles, restaurantes, bares y pubs de Cairns.</p>
+  </header>
+  <main>
+    <div class="preview-notice" role="status">
+      <strong>Vista previa privada</strong>
+      <p>Estamos probando la web. Por ahora podés explorar los negocios, pero no enviar postulaciones ni subir tu CV.</p>
+    </div>
+    <label for="searchInput">Buscar un lugar</label>
+    <input id="searchInput" class="search" type="search" placeholder="Nombre del hotel, bar o restaurante...">
+    <div class="filters" id="filters">
+      <button class="active" type="button" data-category="All">Todos</button>
+      {% for category,label in category_labels.items() %}
+      <button type="button" data-category="{{ category }}">{{ label }}</button>
+      {% endfor %}
+    </div>
+    <p id="displayCount" aria-live="polite"></p>
+    <section id="businessList">
+      {% for business in businesses %}
+      <article class="business-card" data-name="{{ business.name|lower }}" data-category="{{ business.category }}">
+        <h3>{{ business.name }}</h3>
+        <p class="muted">{{ category_labels.get(business.category,business.category) }}{% if business.address %} · {{ business.address }}{% endif %}</p>
+      </article>
+      {% else %}
+      <p>Todavía no hay negocios cargados en esta base de datos.</p>
+      {% endfor %}
+    </section>
+  </main>
+  <script>
+    const cards=[...document.querySelectorAll('.business-card')];
+    const buttons=[...document.querySelectorAll('#filters button')];
+    const search=document.getElementById('searchInput');
+    let category='All';
+    function applyFilters(){
+      let count=0;const query=search.value.trim().toLocaleLowerCase();
+      cards.forEach(card=>{
+        const visible=(category==='All'||card.dataset.category===category)&&card.dataset.name.includes(query);
+        card.hidden=!visible;if(visible)count++;
+      });
+      document.getElementById('displayCount').textContent=`${count} lugares encontrados`;
+    }
+    buttons.forEach(button=>button.addEventListener('click',()=>{
+      category=button.dataset.category;
+      buttons.forEach(item=>item.classList.toggle('active',item===button));
+      applyFilters();
+    }));
+    search.addEventListener('input',applyFilters);
+    applyFilters();
+  </script>
+</body>
+</html>
