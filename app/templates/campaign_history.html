@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis campañas</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+<main>
+  <h1>Mis campañas (en este navegador)</h1>
+  <p>Historial visible solo mientras la sesión de este navegador siga vigente. Todavía no tenemos un sistema de cuentas de usuario.</p>
+  {% for campaign in campaigns %}
+    <article class="business-card">
+      <p><strong>Fecha (UTC):</strong> {{ campaign.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+      <p><strong>Modo:</strong> {{ 'Simulación' if campaign.mode == 'simulated' else 'Envío real' }}</p>
+      <p><strong>Estado:</strong> {{ campaign.status }}</p>
+      <p><a href="/campaigns/{{ campaign.id }}">Ver detalles y destinatarios</a></p>
+    </article>
+  {% else %}
+    <p>No encontramos campañas para esta sesión.</p>
+  {% endfor %}
+  <a href="/">Volver al inicio</a>
+</main>
+</body>
+</html>

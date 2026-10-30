@@ -16,6 +16,7 @@ from app.constants import CATEGORY_LABELS
 from app.database import SessionLocal
 from app.models import Business
 from app.services.email_builder import build_email_preview
+from app.services.campaign_queue import real_enabled
 from app.services.mail_api import SendError, send_self_test
 from app.services.session_store import (
     Draft, begin_sending, clear, finish_sending, get_connection, get_draft, put_draft,
@@ -23,7 +24,7 @@ from app.services.session_store import (
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-MAX_BUSINESSES = 25
+MAX_BUSINESSES = 10
 MAX_CV_SIZE = 5 * 1024 * 1024
 
 
@@ -119,6 +120,7 @@ def render_review(request: Request, error=None):
             "marketing_opt_in": draft.marketing_opt_in,
             "feedback_opt_in": draft.feedback_opt_in,
             "connection": get_connection(sid),
+            "real_enabled": real_enabled(),
             "csrf_token": csrf,
             "error": error,
         },

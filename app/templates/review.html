@@ -6,15 +6,16 @@
   <title>Revisá tus postulaciones</title>
   <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
   <style>
-    .email-preview[hidden] { display: none; }
+    .email-preview[hidden] { display:none; }
     .preview-navigation { display:flex; justify-content:space-between; gap:12px; margin:20px 0; }
     .letter-preview { white-space:pre-wrap; overflow-wrap:anywhere; }
+    .send-warning { background:#fff1dd; padding:14px; border-radius:8px; }
   </style>
 </head>
 <body>
 <header>
   <h1>Revisá tus postulaciones</h1>
-  <p>Este paso prepara los mensajes. Todavía no se contactará a ningún negocio.</p>
+  <p>Revisá cada destinatario y su mensaje antes de iniciar una campaña.</p>
 </header>
 <main>
   {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
@@ -23,20 +24,20 @@
     <p><strong>Nombre:</strong> {{ full_name }}</p>
     <p><strong>Email:</strong> {{ email }}</p>
     <p><strong>Teléfono:</strong> {{ phone }}</p>
-    <p><strong>CV:</strong> {{ cv_filename }} — conservado temporalmente en memoria</p>
+    <p><strong>CV:</strong> {{ cv_filename }} (conservado temporalmente en memoria)</p>
   </section>
   <section>
-    <h2>Vista previa de los emails</h2>
+    <h2>Vista previa de tus emails</h2>
     <p id="previewCounter"></p>
     {% for preview in previews %}
       <article class="business-card email-preview" {% if not loop.first %}hidden{% endif %}>
         <h3>{{ preview.business_name }}</h3>
-        <p><strong>Para (futuro):</strong> {{ preview.to }}</p>
+        <p><strong>Para:</strong> {{ preview.to }}</p>
         <p><strong>Asunto:</strong> {{ preview.subject }}</p>
         <hr>
         <div class="letter-preview">{{ preview.body }}</div>
         <hr>
-        <p>Adjunto previsto: {{ cv_filename }}</p>
+        <p>Adjunto: {{ cv_filename }}</p>
       </article>
     {% endfor %}
     <div class="preview-navigation">
@@ -44,20 +45,47 @@
       <button type="button" id="nextButton">Siguiente →</button>
     </div>
   </section>
+
   <section class="business-card">
-    <h2>Conectá tu email</h2>
-    <p>Usamos OAuth: la app no conoce tu contraseña.</p>
+    <h2>Tu cuenta de email</h2>
     {% if connection %}
-      <p>✅ Cuenta conectada: {{ connection.account_email }} ({{ connection.provider }})</p>
-      <p><strong>Prueba controlada:</strong> se enviará un único email con tu CV a tu propia cuenta. No se enviará nada a los negocios.</p>
+      <p>✅ Conectada: {{ connection.account_email }} ({{ connection.provider }})</p>
       <form method="post" action="/compose/send-test">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <button type="submit">Enviar una prueba a mi propio email</button>
+        <button type="submit">Enviar 1 prueba a mi propio email</button>
       </form>
+      <p><small>La prueba individual del hito anterior descarta el borrador después del envío. Para iniciar otra campaña, tendrás que volver a cargar el CV.</small></p>
     {% else %}
-      <p>Tu email del formulario debe coincidir con el de la cuenta que conectes.</p>
+      <p>La simulación no necesita conectar un email. Para un envío real sí necesitás OAuth.</p>
       <p><a href="/connect/google">Conectar Gmail</a></p>
-      <p><a href="/connect/microsoft">Conectar Outlook / Microsoft</a></p>
+      <p><a href="/connect/microsoft">Conectar Outlook / Hotmail</a></p>
+    {% endif %}
+  </section>
+
+  <section class="business-card">
+    <h2>Milestone 6 — Cola de postulaciones</h2>
+    <p><strong>Recomendado:</strong> probá primero la simulación. Verás el avance y los estados de cada negocio sin enviar correos.</p>
+    <p>Máximo 10 negocios por campaña. El sistema no reintenta automáticamente solicitudes de resultado incierto.</p>
+    <form method="post" action="/campaigns/start">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="mode" value="simulated">
+      <button type="submit">Simular esta campaña (no envía emails)</button>
+    </form>
+    {% if real_enabled and connection %}
+      <div class="send-warning">
+        <p><strong>ATENCIÓN:</strong> este modo envía correos REALES a los negocios seleccionados con tu CV. Solo usalo con contactos legítimos verificados y con autorización explícita de la persona que postula.</p>
+        <form method="post" action="/campaigns/start">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="mode" value="real">
+          <label>
+            <input type="checkbox" name="confirm_real" value="true" required>
+            Revisé los destinatarios y autorizo enviar postulaciones reales a todos los seleccionados.
+          </label>
+          <p><button type="submit">Enviar postulaciones reales</button></p>
+        </form>
+      </div>
+    {% else %}
+      <p><small>El envío real está deshabilitado para proteger las cuentas y evitar correos accidentales. Configuración: ENABLE_REAL_SEND=false.</small></p>
     {% endif %}
   </section>
   <p><a href="/">Volver al inicio</a></p>
@@ -70,10 +98,10 @@
   let current = 0;
   function displayPreview(index) {
     current = index;
-    previews.forEach((element, position) => element.hidden = position !== index);
+    previews.forEach((element, i) => { element.hidden = i !== index; });
     counter.textContent = `Email ${index + 1} de ${previews.length}`;
-    previous.disabled = current === 0;
-    next.disabled = current === previews.length - 1;
+    previous.disabled = index === 0;
+    next.disabled = index === previews.length - 1;
   }
   previous.addEventListener('click', () => { if (current > 0) displayPreview(current - 1); });
   next.addEventListener('click', () => { if (current < previews.length - 1) displayPreview(current + 1); });

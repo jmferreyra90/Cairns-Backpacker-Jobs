@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Progreso de postulaciones</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+  <style>
+    progress { width:100%; height:22px; }
+    .campaign-row { background:white; border-radius:8px; padding:14px; margin:8px 0; }
+    .campaign-row small { display:block; color:#555; }
+    .campaign-row strong { display:block; }
+    .caution { background:#fff1dd; padding:12px; border-radius:8px; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Progreso de tus postulaciones</h1>
+  {% if mode == 'simulated' %}
+    <p class="caution"><strong>Modo simulación:</strong> ningún correo se enviará realmente.</p>
+  {% else %}
+    <p class="caution"><strong>Envío real:</strong> el proveedor puede aceptar un mensaje sin que llegue a destino.</p>
+  {% endif %}
+  <section class="business-card">
+    <p><strong>Estado de la campaña:</strong> <span id="campaignStatus">Cargando...</span></p>
+    <progress id="progressBar" max="100" value="0"></progress>
+    <p><strong id="processedCount">0</strong> / <strong id="totalCount">0</strong> finalizados</p>
+    <p id="summary"></p>
+  </section>
+  <section>
+    <h2>Destinatarios</h2>
+    <div id="attemptsList" aria-live="polite"></div>
+  </section>
+  <form method="post" action="/campaigns/{{ campaign_id }}/cancel" id="cancelForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button type="submit">Detener los próximos envíos</button>
+    <small>Si un correo ya se está procesando, no podemos deshacerlo.</small>
+  </form>
+  <p><a href="/mis-postulaciones">Ver mi historial de campañas</a> · <a href="/">Volver al inicio</a></p>
+</main>
+<script>
+  const statusUrl = {{ ("/campaigns/" ~ campaign_id ~ "/status") | tojson }};
+  const labels = {
+    queued: 'En espera', sending: 'Procesando', simulated: 'Simulado',
+    accepted: 'Aceptado por proveedor', failed: 'Falló',
+    uncertain: 'Resultado incierto', interrupted: 'No intentado',
+    running: 'En proceso', cancelling: 'Cancelando', cancelled: 'Cancelada', completed: 'Finalizada',
+    stopped: 'Detenida', interrupted_campaign: 'Interrumpida',
+  };
+  let intervalId = null;
+  async function refreshStatus() {
+    try {
+      const response = await fetch(statusUrl, { cache:'no-store', credentials:'same-origin' });
+      if (!response.ok) throw new Error('No se pudo leer el estado de la campaña.');
+      const data = await response.json();
+      document.getElementById('campaignStatus').textContent =
+        data.status === 'interrupted' ? 'Interrumpida' : (labels[data.status] || data.status);
+      document.getElementById('processedCount').textContent = data.processed;
+      document.getElementById('totalCount').textContent = data.total;
+      document.getElementById('progressBar').value = data.total ? 100 * data.processed / data.total : 0;
+      document.getElementById('summary').textContent =
+        `Aceptados: ${data.accepted} · Simulados: ${data.simulated} · Fallidos: ${data.failed} · Inciertos: ${data.uncertain}`;
+      const list = document.getElementById('attemptsList');
+      list.replaceChildren();
+      for (const attempt of data.attempts) {
+        const row = document.createElement('div');
+        row.className = 'campaign-row';
+        const name = document.createElement('strong');
+        name.textContent = attempt.business;
+        const state = document.createElement('span');
+        state.textContent = labels[attempt.status] || attempt.status;
+        const recipient = document.createElement('small');
+        recipient.textContent = attempt.recipient;
+        const detail = document.createElement('small');
+        detail.textContent = attempt.note;
+        row.append(name, state, recipient, detail);
+        list.append(row);
+      }
+      if (['completed', 'stopped', 'interrupted', 'cancelled'].includes(data.status)) {
+        document.getElementById('cancelForm').hidden = true;
+      }
+      if (['completed', 'stopped', 'interrupted', 'cancelled'].includes(data.status) && intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    } catch (error) {
+      document.getElementById('campaignStatus').textContent = 'No se pudo actualizar; probá recargar la página.';
+    }
+  }
+  refreshStatus();
+  intervalId = setInterval(refreshStatus, 2000);
+</script>
+</body>
+</html>

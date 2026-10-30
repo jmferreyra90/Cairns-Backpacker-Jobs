@@ -20,6 +20,7 @@ class Draft:
     marketing_opt_in: bool
     feedback_opt_in: bool
     created_at: float
+    campaign_id: Optional[str] = None
 
 
 @dataclass

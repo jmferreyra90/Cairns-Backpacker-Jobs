@@ -1,0 +1,233 @@
+"""Single-process local development queue. DO NOT run with multiple Uvicorn workers."""
+import asyncio
+import hashlib
+import os
+from datetime import datetime, timedelta, timezone
+from time import time
+
+from app.database import SessionLocal
+from app.models import Business
+from app.models_campaign import Campaign, CampaignAttempt, now_utc
+from app.services.email_builder import build_email_preview
+from app.services.mail_api import SendFailure, send_employer_application
+from app.services.session_store import clear, get_connection, get_draft
+
+MAX_PER_CAMPAIGN = 10
+MAX_PER_24_HOURS = 20
+SIMULATION_DELAY_SECONDS = 1
+REAL_DELAY_SECONDS = 8
+DUPLICATE_WINDOW_DAYS = 30
+
+
+def owner_hash(sid: str) -> str:
+    return hashlib.sha256(sid.encode("utf-8")).hexdigest()
+
+
+def real_enabled() -> bool:
+    return os.getenv("ENABLE_REAL_SEND", "false").strip().lower() == "true"
+
+
+def recover_interrupted_campaigns() -> None:
+    """At startup, mark abandoned attempts. Never retry automatically."""
+    with SessionLocal() as db:
+        active = db.query(Campaign).filter(Campaign.status.in_(["queued", "running", "cancelling"])).all()
+        for campaign in active:
+            campaign.status = "interrupted"
+            campaign.finished_at = now_utc()
+            pending = db.query(CampaignAttempt).filter(
+                CampaignAttempt.campaign_id == campaign.id,
+                CampaignAttempt.status.in_(["queued", "sending"]),
+            )
+            for attempt in pending:
+                if attempt.status == "sending":
+                    attempt.status = "uncertain"  # provider may have accepted before restart
+                    attempt.note = "El servidor se reinició durante el envío; revisá Enviados."
+                else:
+                    attempt.status = "interrupted"
+                    attempt.note = "No se intentó: servidor reiniciado."
+                attempt.finished_at = now_utc()
+        db.commit()
+
+
+def preflight_real(db, draft, connection, businesses) -> str | None:
+    """Checks before any outbound requests, avoiding duplicate/unverified contacts."""
+    if not real_enabled():
+        return "El envío real está deshabilitado en .env."
+    if not connection or connection.account_email != draft.email or connection.expires_at <= time() + 60:
+        return "Conectá nuevamente tu cuenta de email antes del envío."
+    if connection.provider not in ("google", "microsoft"):
+        return "Proveedor no permitido."
+    if connection.provider == "microsoft" and len(draft.cv_bytes) > 2_500_000:
+        return "Con Outlook, elegí un CV de menos de 2,5 MB."
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+    for business in businesses:
+        email = (business.email or "").strip().lower()
+        domain = email.rsplit("@", 1)[-1] if "@" in email else ""
+        if domain in {"example.com", "example.org", "example.net", "localhost", "invalid", "test"}:
+            return f"{business.name}: el email es de prueba."
+        verified = business.last_verified
+        if not business.email_verified or verified is None or verified < cutoff.date():
+            return f"{business.name}: verificá su email antes del envío real."
+
+    day_ago = datetime.now(timezone.utc) - timedelta(hours=24)
+    attempted_today = (
+        db.query(CampaignAttempt)
+        .join(Campaign, CampaignAttempt.campaign_id == Campaign.id)
+        .filter(
+            Campaign.sender_email == draft.email,
+            Campaign.mode == "real",
+            CampaignAttempt.attempted_at >= day_ago,
+            CampaignAttempt.status.in_(["sending", "accepted", "uncertain", "failed"]),
+        ).count()
+    )
+    if attempted_today + len(businesses) > MAX_PER_24_HOURS:
+        return f"Límite local: máximo {MAX_PER_24_HOURS} intentos en 24 horas por cuenta."
+
+    last_month = datetime.now(timezone.utc) - timedelta(days=DUPLICATE_WINDOW_DAYS)
+    prior = (
+        db.query(CampaignAttempt)
+        .join(Campaign, CampaignAttempt.campaign_id == Campaign.id)
+        .filter(
+            Campaign.sender_email == draft.email,
+            Campaign.mode == "real",
+            CampaignAttempt.attempted_at >= last_month,
+            CampaignAttempt.status.in_(["sending", "accepted", "uncertain"]),
+            CampaignAttempt.business_id.in_([b.id for b in businesses]),
+        ).all()
+    )
+    if prior:
+        names = ", ".join(sorted({p.business_name for p in prior})[:3])
+        return f"Ya hay envíos recientes o inciertos a: {names}. No se duplicarán."
+    return None
+
+
+def _finish_remaining(db, campaign_id: str, status: str, note: str):
+    pending = db.query(CampaignAttempt).filter(
+        CampaignAttempt.campaign_id == campaign_id,
+        CampaignAttempt.status == "queued",
+    ).all()
+    for row in pending:
+        row.status = status
+        row.note = note
+        row.finished_at = now_utc()
+
+
+async def run_campaign(campaign_id: str, sid: str) -> None:
+    """Local background task: persist status for polling, no auto-retries."""
+    try:
+        with SessionLocal() as db:
+            campaign = db.get(Campaign, campaign_id)
+            if not campaign or campaign.status != "queued":
+                return
+            campaign.status = "running"
+            db.commit()
+
+        with SessionLocal() as db:
+            attempts = db.query(CampaignAttempt).filter(
+                CampaignAttempt.campaign_id == campaign_id,
+            ).order_by(CampaignAttempt.id).all()
+            ids = [a.id for a in attempts]
+            mode = db.get(Campaign, campaign_id).mode
+
+        for position, attempt_id in enumerate(ids):
+            with SessionLocal() as db:
+                campaign = db.get(Campaign, campaign_id)
+                if campaign and campaign.status == "cancelling":
+                    _finish_remaining(db, campaign_id, "interrupted", "Cancelado antes del envío.")
+                    campaign.status = "cancelled"
+                    campaign.finished_at = now_utc()
+                    db.commit()
+                    return
+            draft, connection = get_draft(sid), get_connection(sid)
+            if not draft or (mode == "real" and (
+                not connection or connection.account_email != draft.email or
+                connection.expires_at <= time() + 30
+            )):
+                with SessionLocal() as db:
+                    _finish_remaining(db, campaign_id, "interrupted", "La sesión venció o falta reconectar el email.")
+                    db.get(Campaign, campaign_id).status = "interrupted"
+                    db.get(Campaign, campaign_id).finished_at = now_utc()
+                    db.commit()
+                return
+
+            with SessionLocal() as db:
+                attempt = db.get(CampaignAttempt, attempt_id)
+                business = db.get(Business, attempt.business_id)
+                # Re-check unchanged recipient and status immediately before sending.
+                if (not business or not business.active or business.email != attempt.recipient_email or
+                    (mode == "real" and (not business.email_verified or not business.last_verified or
+                     business.last_verified < (datetime.now(timezone.utc) - timedelta(days=90)).date()))):
+                    attempt.status = "failed"
+                    attempt.note = "Destinatario cambió o ya no está verificado."
+                    attempt.finished_at = now_utc()
+                    db.commit()
+                    continue
+                preview = build_email_preview(
+                    business, draft.full_name, draft.phone, draft.subject, draft.cover_letter
+                )
+                attempt.status = "sending"
+                attempt.attempted_at = now_utc()
+                db.commit()
+
+            failure = None
+            if mode == "simulated":
+                await asyncio.sleep(SIMULATION_DELAY_SECONDS)
+            else:
+                try:
+                    await send_employer_application(connection, draft, preview)
+                except SendFailure as exc:
+                    failure = exc
+
+            with SessionLocal() as db:
+                attempt = db.get(CampaignAttempt, attempt_id)
+                if failure:
+                    attempt.status = "uncertain" if failure.uncertain else "failed"
+                    attempt.note = str(failure)
+                else:
+                    attempt.status = "simulated" if mode == "simulated" else "accepted"
+                    attempt.note = (
+                        "Simulación: no se envió nada." if mode == "simulated"
+                        else "Aceptado por el proveedor; entrega no confirmada."
+                    )
+                attempt.finished_at = now_utc()
+                db.commit()
+
+            if failure and failure.stop:
+                with SessionLocal() as db:
+                    _finish_remaining(db, campaign_id, "interrupted", "Cola detenida por error del proveedor.")
+                    campaign = db.get(Campaign, campaign_id)
+                    campaign.status = "stopped"
+                    campaign.finished_at = now_utc()
+                    db.commit()
+                return
+            if position < len(ids) - 1:
+                await asyncio.sleep(SIMULATION_DELAY_SECONDS if mode == "simulated" else REAL_DELAY_SECONDS)
+
+        with SessionLocal() as db:
+            campaign = db.get(Campaign, campaign_id)
+            campaign.status = "completed"
+            campaign.finished_at = now_utc()
+            db.commit()
+
+    except Exception:
+        # Never retry an uncertain provider request automatically.
+        with SessionLocal() as db:
+            campaign = db.get(Campaign, campaign_id)
+            if campaign and campaign.status in ("queued", "running", "cancelling"):
+                for row in db.query(CampaignAttempt).filter(
+                    CampaignAttempt.campaign_id == campaign_id,
+                    CampaignAttempt.status.in_(["sending", "queued"]),
+                ):
+                    if row.status == "sending":
+                        row.status = "uncertain"
+                        row.note = "Error inesperado durante el envío. Revisá Enviados."
+                    else:
+                        row.status = "interrupted"
+                        row.note = "No se intentó por un error interno."
+                    row.finished_at = now_utc()
+                campaign.status = "stopped"
+                campaign.finished_at = now_utc()
+                db.commit()
+    finally:
+        clear(sid)
