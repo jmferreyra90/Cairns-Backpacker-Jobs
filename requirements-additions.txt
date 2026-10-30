@@ -1,0 +1,4 @@
+authlib
+httpx
+python-dotenv
+itsdangerous
