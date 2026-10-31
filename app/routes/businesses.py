@@ -1,4 +1,4 @@
-"""Cairns business directory. Staging is explicitly read-only and hides contacts."""
+"""Business directory: local app or strictly no-send hosted staging demo."""
 import os
 
 from fastapi import APIRouter, Request
@@ -23,23 +23,38 @@ def home(request: Request):
             .order_by(Business.name)
             .all()
         )
+        review_map = {r.business_id: r.status for r in db.query(BusinessContactReview).all()}
+
         if os.getenv("APP_MODE", "local").lower() == "staging":
-            # No email addresses, managers, or applicant information in the preview.
+            allow_demo = os.getenv("STAGING_ENABLE_FORMS", "false").lower() == "true"
+            # Only public information leaves the server; emails and manager names stay private.
             public_rows = [
-                {"name": b.name, "category": b.category, "address": b.address}
+                {
+                    "id": b.id,
+                    "name": b.name,
+                    "category": b.category,
+                    "address": b.address,
+                    "selectable": allow_demo and review_map.get(b.id) != "blocked",
+                }
                 for b in businesses
             ]
             return templates.TemplateResponse(
                 request=request,
                 name="staging_directory.html",
-                context={"businesses": public_rows, "category_labels": CATEGORY_LABELS},
+                context={
+                    "businesses": public_rows,
+                    "category_labels": CATEGORY_LABELS,
+                    "demo_enabled": allow_demo,
+                },
                 headers={"Cache-Control": "no-store"},
             )
 
-        review_map = {r.business_id: r for r in db.query(BusinessContactReview).all()}
         rows = [
-            {"business": b, "status": review_map[b.id].status if b.id in review_map else "pending",
-             "selectable": bool(b.email) and (b.id not in review_map or review_map[b.id].status != "blocked")}
+            {
+                "business": b,
+                "status": review_map.get(b.id, "pending"),
+                "selectable": bool(b.email) and review_map.get(b.id) != "blocked",
+            }
             for b in businesses
         ]
         return templates.TemplateResponse(

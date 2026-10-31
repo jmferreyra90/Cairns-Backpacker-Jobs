@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Vista previa — No se enviarán emails</title>
+  <link rel="stylesheet" href="{{ url_for('static',path='css/style.css') }}">
+  <style>
+    .preview-notice{padding:16px;background:#e7f1fb;border-left:4px solid #1769aa;border-radius:6px}
+    .email-preview[hidden]{display:none}
+    .letter-preview{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+    .nav{display:flex;gap:14px;justify-content:space-between;margin:18px 0}
+    .nav button{padding:12px;cursor:pointer}
+    .nav button:disabled{opacity:.5;cursor:default}
+  </style>
+</head>
+<body>
+<header><h1>Revisá tus emails de prueba</h1></header>
+<main>
+  <div class="preview-notice"><strong>Simulación, sin envío.</strong>
+    <p>Estas vistas previas se generaron para probar el diseño. No se guardaron datos de contacto ni el CV; no se envió ningún email y no hay una campaña activa.</p>
+  </div>
+  <section class="business-card">
+    <h2>Datos ficticios</h2>
+    <p><strong>Nombre:</strong> {{ full_name }}</p><p><strong>Email:</strong> {{ email }}</p>
+    <p><strong>Teléfono:</strong> {{ phone }}</p><p><strong>Archivo validado:</strong> {{ cv_filename }}</p>
+  </section>
+  <section>
+    <h2>Previsualización</h2><p id="previewCounter" aria-live="polite"></p>
+    {% for preview in previews %}
+    <article class="business-card email-preview" {% if not loop.first %}hidden{% endif %}>
+      <h3>{{ preview.business_name }}</h3>
+      <p><strong>Destinatario:</strong> {{ preview.recipient_label }}</p>
+      <p><strong>Asunto:</strong> {{ preview.subject }}</p><hr>
+      <div class="letter-preview">{{ preview.body }}</div>
+      <p><strong>Adjunto (solo validación):</strong> {{ cv_filename }}</p>
+    </article>
+    {% endfor %}
+    <div class="nav"><button id="previousButton" type="button">← Anterior</button><button id="nextButton" type="button">Siguiente →</button></div>
+  </section>
+  <p><a href="/">Volver al directorio</a></p>
+</main>
+<script>
+  const previews=[...document.querySelectorAll('.email-preview')];
+  const counter=document.getElementById('previewCounter');
+  const previous=document.getElementById('previousButton');
+  const next=document.getElementById('nextButton');
+  let current=0;
+  function showPreview(i){
+    current=i;previews.forEach((el,n)=>el.hidden=n!==i);
+    counter.textContent=`Email ${i+1} de ${previews.length}`;
+    previous.disabled=i===0;
+    next.disabled=i===previews.length-1;
+  }
+  previous.addEventListener('click',()=>{if(current>0)showPreview(current-1)});
+  next.addEventListener('click',()=>{if(current+1<previews.length)showPreview(current+1)});
+  if(previews.length)showPreview(0);
+</script>
+</body>
+</html>

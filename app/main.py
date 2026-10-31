@@ -1,4 +1,4 @@
-"""Application entry point. APP_MODE=staging exposes only a private directory preview."""
+"""Application entry point. Hosted staging is password-protected and never sends mail."""
 import os
 
 from dotenv import load_dotenv
@@ -12,24 +12,33 @@ MODE = os.getenv("APP_MODE", "local").strip().lower()
 if MODE not in {"local", "staging"}:
     raise RuntimeError("APP_MODE must be 'local' or 'staging'")
 
-# Render-hosted deployments MUST use the intentionally read-only staging mode.
-if os.getenv("RENDER", "").lower() == "true" and MODE != "staging":
+IS_RENDER = os.getenv("RENDER", "").lower() == "true"
+if IS_RENDER and MODE != "staging":
     raise RuntimeError("Render deployment is restricted to APP_MODE=staging")
+
+STAGING_ENABLE_FORMS = os.getenv("STAGING_ENABLE_FORMS", "false").strip().lower() == "true"
 
 if MODE == "staging":
     username = os.getenv("STAGING_USERNAME", "")
     password = os.getenv("STAGING_PASSWORD", "")
     if not username or len(password) < 24:
         raise RuntimeError("Set STAGING_USERNAME and a 24+ character STAGING_PASSWORD")
-    if os.getenv("RENDER", "").lower() == "true":
-        if not os.getenv("DATABASE_URL", "").startswith(("postgresql://", "postgresql+psycopg://", "postgres://")):
-            raise RuntimeError("Render staging requires DATABASE_URL for PostgreSQL")
+    if IS_RENDER and not os.getenv("DATABASE_URL", "").startswith((
+        "postgresql://", "postgresql+psycopg://", "postgres://"
+    )):
+        raise RuntimeError("Render staging requires a PostgreSQL DATABASE_URL")
 else:
     secret = os.getenv("APP_SESSION_SECRET", "")
     if len(secret) < 32:
         raise RuntimeError("Set APP_SESSION_SECRET in .env (minimum 32 characters)")
 
-# Import models before create_all, as in milestone 7.
+if MODE == "staging" and STAGING_ENABLE_FORMS:
+    secret = os.getenv("APP_SESSION_SECRET", "")
+    if len(secret) < 32:
+        raise RuntimeError("STAGING_ENABLE_FORMS requires 32+ character APP_SESSION_SECRET")
+    if os.getenv("ENABLE_REAL_SEND", "false").lower() == "true":
+        raise RuntimeError("Never enable real sending in hosted staging")
+
 from app import models, models_campaign, models_directory  # noqa: E402,F401
 from app.database import Base, engine  # noqa: E402
 from app.routes import businesses  # noqa: E402
@@ -45,18 +54,23 @@ app = FastAPI(
 
 if MODE == "staging":
     from app.middleware.staging_gate import StagingGateMiddleware
-
-    app.add_middleware(
-        StagingGateMiddleware,
-        username=username,
-        password=password,
-    )
+    app.add_middleware(StagingGateMiddleware, username=username, password=password)
+    if STAGING_ENABLE_FORMS:
+        # Signed cookie stores only CSRF token: no applicant data, file or OAuth token.
+        app.add_middleware(
+            SessionMiddleware,
+            secret_key=secret,
+            same_site="lax",
+            https_only=IS_RENDER,
+            session_cookie="cairnsjobs_stage_session",
+            max_age=1800,
+        )
 else:
     app.add_middleware(
         SessionMiddleware,
         secret_key=secret,
         same_site="lax",
-        https_only=False,  # Local HTTP only. The hosted staging has no sessions.
+        https_only=False,  # For local HTTP only
         session_cookie="cairnsjobs_session",
         max_age=3600,
     )
@@ -70,13 +84,14 @@ if MODE == "local":
     app.include_router(mail_auth.router)
     app.include_router(campaigns.router)
     app.include_router(admin_businesses.router)
-
-    # In-memory CVs and provider access tokens cannot be recovered after restart.
     from app.services.campaign_queue import recover_interrupted_campaigns
     recover_interrupted_campaigns()
+elif STAGING_ENABLE_FORMS:
+    # Only preview routes; no /auth, /connect, /campaigns or admin in hosted staging.
+    from app.routes import staging_apply
+    app.include_router(staging_apply.router)
 
 
 @app.get("/health", include_in_schema=False)
 def health():
-    # Health is intentionally public and does NOT expose DB rows.
     return {"status": "ok"}

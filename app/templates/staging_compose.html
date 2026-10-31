@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prepará tu postulación de prueba</title>
+  <link rel="stylesheet" href="{{ url_for('static',path='css/style.css') }}">
+  <style>
+    .demo-warning{padding:16px;background:#fff0d9;border-left:4px solid #c77a10;border-radius:5px}
+    .form-field{display:flex;flex-direction:column;margin:16px 0;gap:6px}
+    .form-field input,.form-field textarea{padding:12px;border:1px solid #bbb;border-radius:5px;font:inherit;max-width:100%;box-sizing:border-box}
+    .form-field small{color:#555}
+    .error{color:#b00020;font-weight:bold}
+    .primary{padding:13px 22px;background:#1769aa;color:white;border:0;border-radius:6px;cursor:pointer}
+  </style>
+</head>
+<body>
+<header><h1>Prepará tu postulación — Prueba</h1></header>
+<main>
+  <div class="demo-warning" role="note">
+    <strong>Solo pruebas internas.</strong> Usá un nombre, email, teléfono y CV <strong>ficticios</strong>.
+    Este formulario no guarda datos en la base de contactos, no conserva el CV y no envía emails.
+  </div>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+  <h2>{{ businesses|length }} lugares seleccionados</h2>
+  {% for b in businesses %}<article class="business-card"><strong>{{ b.name }}</strong>{% if b.address %}<p>{{ b.address }}</p>{% endif %}</article>{% endfor %}
+  {% if businesses %}
+  <form action="/compose/review" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="business_ids" value="{{ ids }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="form-field"><label for="full_name">Nombre de prueba</label><input id="full_name" name="full_name" maxlength="100" value="{{ values.get('full_name','') }}" placeholder="Alex Smith" required></div>
+    <div class="form-field"><label for="email">Email ficticio</label><input id="email" name="email" type="email" maxlength="254" value="{{ values.get('email','') }}" placeholder="alex@example.com" required></div>
+    <div class="form-field"><label for="phone">Teléfono ficticio</label><input id="phone" name="phone" maxlength="40" value="{{ values.get('phone','') }}" placeholder="0400000000" required></div>
+    <div class="form-field"><label for="subject">Asunto en inglés</label><input id="subject" name="subject" maxlength="150" value="{{ values.get('subject','Job Application - [Business Name]') }}" required></div>
+    <div class="form-field"><label for="cover_letter">Carta de presentación en inglés</label><textarea id="cover_letter" name="cover_letter" maxlength="4000" rows="8" placeholder="I would love to join [Business Name]..." required>{{ values.get('cover_letter','') }}</textarea><small>Se admite [Business Name] y [Your Name]. El saludo y la firma se agregan automáticamente.</small></div>
+    <div class="form-field"><label for="cv">CV de prueba (.pdf o .docx, hasta 5 MB)</label><input id="cv" name="cv" type="file" accept=".pdf,.docx" required><small>No uses tu CV real: se valida y descarta sin almacenarlo.</small></div>
+    <p><label><input type="checkbox" name="test_data_confirmed" value="true" required> Confirmo que estoy usando datos y documentos ficticios.</label></p>
+    <button class="primary" type="submit">Revisar emails simulados →</button>
+  </form>
+  {% else %}<p>No hay lugares disponibles para esta prueba.</p>{% endif %}
+  <p><a href="/">← Volver al directorio</a></p>
+</main>
+</body>
+</html>

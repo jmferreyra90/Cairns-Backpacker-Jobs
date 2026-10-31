@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="es-AR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Buscá trabajo en Cairns — Vista previa</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Buscá trabajo en Cairns — Demo privada</title>
   <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
   <style>
     .preview-notice{padding:16px;background:#e7f1fb;border-left:4px solid #1769aa;border-radius:6px;margin:18px 0}
@@ -13,58 +12,97 @@
     .filters button.active{font-weight:bold;background:#1769aa;color:white}
     .business-card[hidden]{display:none}
     .muted{color:#666}
+    .selection-bar{position:sticky;bottom:0;background:#fff;border:1px solid #ddd;padding:12px;border-radius:8px;display:flex;gap:12px;justify-content:space-between;align-items:center}
+    .selection-bar button{padding:12px 18px;background:#1769aa;color:#fff;border:0;border-radius:6px;cursor:pointer}
   </style>
 </head>
 <body>
-  <header>
-    <h1>Buscá trabajo en Cairns</h1>
-    <p>Explorá hoteles, restaurantes, bares y pubs de Cairns.</p>
-  </header>
-  <main>
-    <div class="preview-notice" role="status">
-      <strong>Vista previa privada</strong>
-      <p>Estamos probando la web. Por ahora podés explorar los negocios, pero no enviar postulaciones ni subir tu CV.</p>
-    </div>
-    <label for="searchInput">Buscar un lugar</label>
-    <input id="searchInput" class="search" type="search" placeholder="Nombre del hotel, bar o restaurante...">
-    <div class="filters" id="filters">
-      <button class="active" type="button" data-category="All">Todos</button>
-      {% for category,label in category_labels.items() %}
+<header>
+  <h1>Buscá trabajo en Cairns</h1>
+  <p>Explorá hoteles, restaurantes, bares y pubs de Cairns.</p>
+</header>
+<main>
+  <div class="preview-notice" role="status">
+    <strong>Vista previa privada — no se envían emails</strong>
+    {% if demo_enabled %}
+    <p>Podés seleccionar hasta 10 lugares y preparar una postulación de prueba. <strong>Usá únicamente datos y CV ficticios.</strong> No guardamos los datos del formulario ni habilitamos Gmail, Outlook o el envío.</p>
+    {% else %}
+    <p>Estamos probando la web. Por ahora podés explorar negocios, pero no seleccionarlos ni subir tu CV.</p>
+    {% endif %}
+  </div>
+  <label for="searchInput">Buscar un lugar</label>
+  <input id="searchInput" class="search" type="search" placeholder="Nombre del hotel, bar o restaurante...">
+  <div class="filters" id="filters">
+    <button class="active" type="button" data-category="All">Todos</button>
+    {% for category,label in category_labels.items() %}
       <button type="button" data-category="{{ category }}">{{ label }}</button>
-      {% endfor %}
-    </div>
-    <p id="displayCount" aria-live="polite"></p>
-    <section id="businessList">
-      {% for business in businesses %}
+    {% endfor %}
+  </div>
+  <p id="displayCount" aria-live="polite"></p>
+  <section id="businessList">
+    {% for business in businesses %}
       <article class="business-card" data-name="{{ business.name|lower }}" data-category="{{ business.category }}">
-        <h3>{{ business.name }}</h3>
+        {% if demo_enabled %}
+          <label>
+            <input type="checkbox" class="business-checkbox" value="{{ business.id }}" {% if not business.selectable %}disabled{% endif %}>
+            <strong>{{ business.name }}</strong>
+          </label>
+        {% else %}
+          <h3>{{ business.name }}</h3>
+        {% endif %}
         <p class="muted">{{ category_labels.get(business.category,business.category) }}{% if business.address %} · {{ business.address }}{% endif %}</p>
+        {% if demo_enabled and not business.selectable %}<p class="muted">No disponible para esta prueba</p>{% endif %}
       </article>
-      {% else %}
-      <p>Todavía no hay negocios cargados en esta base de datos.</p>
-      {% endfor %}
-    </section>
-  </main>
-  <script>
-    const cards=[...document.querySelectorAll('.business-card')];
-    const buttons=[...document.querySelectorAll('#filters button')];
-    const search=document.getElementById('searchInput');
-    let category='All';
-    function applyFilters(){
-      let count=0;const query=search.value.trim().toLocaleLowerCase();
-      cards.forEach(card=>{
-        const visible=(category==='All'||card.dataset.category===category)&&card.dataset.name.includes(query);
-        card.hidden=!visible;if(visible)count++;
-      });
-      document.getElementById('displayCount').textContent=`${count} lugares encontrados`;
-    }
-    buttons.forEach(button=>button.addEventListener('click',()=>{
-      category=button.dataset.category;
-      buttons.forEach(item=>item.classList.toggle('active',item===button));
-      applyFilters();
-    }));
-    search.addEventListener('input',applyFilters);
+    {% else %}
+      <p>Todavía no hay negocios cargados.</p>
+    {% endfor %}
+  </section>
+  {% if demo_enabled %}
+    <div class="selection-bar">
+      <strong><span id="selectedCount">0</span> <span id="selectedLabel">lugares seleccionados</span></strong>
+      <button id="continueButton" type="button">Continuar a prueba →</button>
+    </div>
+  {% endif %}
+</main>
+<script>
+  const cards=[...document.querySelectorAll('.business-card')];
+  const buttons=[...document.querySelectorAll('#filters button')];
+  const search=document.getElementById('searchInput');
+  let category='All';
+  function applyFilters(){
+    let count=0;const query=search.value.trim().toLocaleLowerCase();
+    cards.forEach(card=>{
+      const visible=(category==='All'||card.dataset.category===category)&&card.dataset.name.includes(query);
+      card.hidden=!visible;if(visible)count++;
+    });
+    document.getElementById('displayCount').textContent=`${count} lugares encontrados`;
+  }
+  buttons.forEach(button=>button.addEventListener('click',()=>{
+    category=button.dataset.category;
+    buttons.forEach(item=>item.classList.toggle('active',item===button));
     applyFilters();
-  </script>
+  }));
+  search.addEventListener('input',applyFilters);
+  applyFilters();
+  const checkboxes=[...document.querySelectorAll('.business-checkbox')];
+  const selectedCount=document.getElementById('selectedCount');
+  if(selectedCount){
+    function updateSelection(){
+      const count=checkboxes.filter(b=>b.checked).length;
+      selectedCount.textContent=count;
+      document.getElementById('selectedLabel').textContent=count===1?'lugar seleccionado':'lugares seleccionados';
+    }
+    checkboxes.forEach(box=>box.addEventListener('change',()=>{
+      if(checkboxes.filter(b=>b.checked).length>10){box.checked=false;alert('Máximo 10 lugares por prueba.');}
+      updateSelection();
+    }));
+    document.getElementById('continueButton').addEventListener('click',()=>{
+      const ids=checkboxes.filter(b=>b.checked).map(b=>b.value);
+      if(!ids.length){alert('Seleccioná al menos un lugar.');return;}
+      window.location.href='/compose?ids='+encodeURIComponent(ids.join(','));
+    });
+    updateSelection();
+  }
+</script>
 </body>
 </html>
