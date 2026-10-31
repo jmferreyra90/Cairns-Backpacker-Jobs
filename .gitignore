@@ -1,6 +1,13 @@
 venv/
+.venv/
 __pycache__/
 *.pyc
+
 .env
-uploads/
+.env.staging
+.env.local
+
 *.db
+*.sqlite
+*.sqlite3
+uploads/
