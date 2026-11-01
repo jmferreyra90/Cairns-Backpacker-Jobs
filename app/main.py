@@ -17,6 +17,18 @@ if IS_RENDER and MODE != "staging":
     raise RuntimeError("Render deployment is restricted to APP_MODE=staging")
 
 STAGING_ENABLE_FORMS = os.getenv("STAGING_ENABLE_FORMS", "false").strip().lower() == "true"
+STAGING_ENABLE_ACCOUNTS = os.getenv("STAGING_ENABLE_ACCOUNTS", "false").strip().lower() == "true"
+if STAGING_ENABLE_ACCOUNTS and MODE != "staging":
+    raise RuntimeError("Account beta is restricted to private staging")
+if STAGING_ENABLE_ACCOUNTS:
+    if os.getenv("ENABLE_REAL_SEND", "false").lower() == "true":
+        raise RuntimeError("Account beta cannot send employer emails")
+    if not os.getenv("DATABASE_URL", "").startswith(("postgresql://", "postgresql+psycopg://", "postgres://")):
+        raise RuntimeError("Account beta requires PostgreSQL (not SQLite)")
+    if not os.getenv("APP_PUBLIC_URL", "").startswith("https://"):
+        raise RuntimeError("Set APP_PUBLIC_URL to your HTTPS staging domain")
+    if not os.getenv("SUPABASE_URL", "").startswith("https://") or not os.getenv("SUPABASE_PUBLISHABLE_KEY", ""):
+        raise RuntimeError("Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY")
 
 if MODE == "staging":
     username = os.getenv("STAGING_USERNAME", "")
@@ -32,7 +44,7 @@ else:
     if len(secret) < 32:
         raise RuntimeError("Set APP_SESSION_SECRET in .env (minimum 32 characters)")
 
-if MODE == "staging" and STAGING_ENABLE_FORMS:
+if MODE == "staging" and (STAGING_ENABLE_FORMS or STAGING_ENABLE_ACCOUNTS):
     secret = os.getenv("APP_SESSION_SECRET", "")
     if len(secret) < 32:
         raise RuntimeError("STAGING_ENABLE_FORMS requires 32+ character APP_SESSION_SECRET")
@@ -41,6 +53,10 @@ if MODE == "staging" and STAGING_ENABLE_FORMS:
 
 from app import models, models_campaign, models_directory  # noqa: E402,F401
 from app.database import Base, engine  # noqa: E402
+if STAGING_ENABLE_ACCOUNTS:
+    from app import models_accounts  # noqa: E402,F401
+    with engine.begin() as connection:
+        connection.exec_driver_sql("CREATE SCHEMA IF NOT EXISTS app_private")
 from app.routes import businesses  # noqa: E402
 
 Base.metadata.create_all(bind=engine)
@@ -55,7 +71,7 @@ app = FastAPI(
 if MODE == "staging":
     from app.middleware.staging_gate import StagingGateMiddleware
     app.add_middleware(StagingGateMiddleware, username=username, password=password)
-    if STAGING_ENABLE_FORMS:
+    if STAGING_ENABLE_FORMS or STAGING_ENABLE_ACCOUNTS:
         # Signed cookie stores only CSRF token: no applicant data, file or OAuth token.
         app.add_middleware(
             SessionMiddleware,
@@ -86,10 +102,14 @@ if MODE == "local":
     app.include_router(admin_businesses.router)
     from app.services.campaign_queue import recover_interrupted_campaigns
     recover_interrupted_campaigns()
-elif STAGING_ENABLE_FORMS:
-    # Only preview routes; no /auth, /connect, /campaigns or admin in hosted staging.
-    from app.routes import staging_apply
-    app.include_router(staging_apply.router)
+else:
+    if STAGING_ENABLE_FORMS:
+        # Only preview routes; no /auth, /connect, /campaigns or admin in hosted staging.
+        from app.routes import staging_apply
+        app.include_router(staging_apply.router)
+    if STAGING_ENABLE_ACCOUNTS:
+        from app.routes import account_beta
+        app.include_router(account_beta.router)
 
 
 @app.get("/health", include_in_schema=False)

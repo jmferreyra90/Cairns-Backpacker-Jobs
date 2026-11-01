@@ -1,0 +1,8 @@
+<!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ingresá a tu cuenta — Cairns Jobs</title><link rel="stylesheet" href="{{ url_for('static',path='css/style.css') }}"></head>
+<body><main style="max-width:650px"><h1>Mi cuenta — beta privada</h1><p><a href="/">← Directorio</a></p>
+<p>Entrá con un enlace enviado a tu email. Esta prueba está disponible únicamente para quienes tienen acceso privado al sitio.</p>
+{% if error %}<p role="alert" style="color:#a00">{{error}}</p>{% endif %}
+{% if sent %}<p role="status"><strong>Revisá tu correo.</strong> Abrí el enlace en este mismo navegador. El servicio gratuito de Supabase puede limitar los envíos.</p>{% endif %}
+<form method="post" action="/cuenta/enlace"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><p><label>Email de tu cuenta <input type="email" name="email" required maxlength="254" style="width:100%;padding:10px"></label></p><button type="submit">Enviarme un enlace de acceso</button></form>
+<p><small>Usamos Supabase Auth para verificar la titularidad de tu email. No compartas el enlace ni lo uses para cuentas de otras personas. Por ahora, Supabase solo envía emails a direcciones autorizadas del equipo salvo que configures SMTP propio.</small></p>
+</main></body></html>

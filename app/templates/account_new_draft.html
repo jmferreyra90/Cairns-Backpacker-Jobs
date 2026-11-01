@@ -1,0 +1,8 @@
+<!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nuevo borrador</title><link rel="stylesheet" href="{{url_for('static',path='css/style.css')}}"><style>.field{display:block;margin:20px 0}.field textarea,.field input{display:block;width:100%;padding:10px;box-sizing:border-box}.biz{display:block;margin:10px 0}</style></head>
+<body><main style="max-width:820px"><h1>Guardá un borrador</h1><p><a href="/cuenta">← Mi cuenta</a></p><p>Podés elegir hasta 10 negocios. Se guarda el texto, <strong>no tu CV</strong>; no se envían emails.</p>
+<form method="post" action="/cuenta/borradores"><input type="hidden" name="csrf_token" value="{{csrf_token}}">
+<fieldset><legend>Seleccioná lugares (1 a 10)</legend>{% for b in businesses %}<label class="biz"><input type="checkbox" name="business_ids" value="{{b.id}}" class="business-selector"> {{b.name}}</label>{% endfor %}</fieldset>
+<label class="field">Asunto en inglés <input required maxlength="150" name="subject" value="Job Application - [Business Name]"></label>
+<label class="field">Carta en inglés <textarea required maxlength="4000" name="cover_letter" rows="10" placeholder="I would like to apply to [Business Name]..."></textarea></label>
+<button type="submit">Guardar borrador</button></form></main>
+<script>const cb=[...document.querySelectorAll('.business-selector')];cb.forEach(c=>c.addEventListener('change',()=>{if(cb.filter(x=>x.checked).length>10){c.checked=false;alert('Máximo 10 lugares por borrador.')}}));</script></body></html>

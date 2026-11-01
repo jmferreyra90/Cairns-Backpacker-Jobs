@@ -45,6 +45,7 @@ def home(request: Request):
                     "businesses": public_rows,
                     "category_labels": CATEGORY_LABELS,
                     "demo_enabled": allow_demo,
+                    "accounts_enabled": os.getenv("STAGING_ENABLE_ACCOUNTS", "false").lower() == "true",
                 },
                 headers={"Cache-Control": "no-store"},
             )

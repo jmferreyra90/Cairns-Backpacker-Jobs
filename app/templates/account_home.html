@@ -1,0 +1,20 @@
+<!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mi cuenta — Cairns Jobs</title><link rel="stylesheet" href="{{url_for('static',path='css/style.css')}}"><style>.field{display:block;margin:14px 0}.field input{width:100%;max-width:450px;padding:10px}.option{display:block;margin:15px 0}.page{max-width:760px}</style></head>
+<body><main class="page"><h1>Mi cuenta — beta privada</h1><p><a href="/">← Volver al directorio</a></p>
+{% if notice %}<p role="status">{{notice.replace('-', ' ')}}</p>{% endif %}
+<p>Tu email está verificado: <strong>{{account.email}}</strong></p>
+<section class="business-card"><h2>Datos y preferencias</h2>
+<p>Para guardar borradores, completá tu nombre y teléfono. El marketing y las invitaciones de feedback son opcionales y están desactivados de forma predeterminada.</p>
+<form method="post" action="/cuenta/perfil"><input type="hidden" name="csrf_token" value="{{csrf_token}}">
+<label class="field">Nombre completo <input required name="full_name" maxlength="100" value="{{account.full_name}}"></label>
+<label class="field">Teléfono <input required name="phone" type="tel" maxlength="40" value="{{account.phone}}" placeholder="+61 400 000 000"></label>
+<label class="option"><input type="checkbox" name="marketing_opt_in" value="true" {% if account.marketing_opt_in %}checked{% endif %}> Quiero recibir comunicaciones promocionales por email.</label>
+<label class="option"><input type="checkbox" name="feedback_opt_in" value="true" {% if account.feedback_opt_in %}checked{% endif %}> Acepto invitaciones por email para dar feedback.</label>
+<p><small>Conservaremos tu nombre, email verificado, teléfono, preferencias y borradores para gestionar tu cuenta. No enviamos emails promocionales durante esta beta. No almacenamos CVs aquí. Antes del lanzamiento se publicará una política de privacidad final con el responsable, ubicación de los datos y plazos de conservación.</small></p>
+<label class="option"><input type="checkbox" required name="privacy_acknowledged" value="true"> Leí la información sobre el uso de mis datos en esta beta.</label>
+<button type="submit">Guardar perfil</button></form></section>
+<section class="business-card"><h2>Mis borradores</h2>
+{% if account.full_name and account.phone %}<p><a href="/cuenta/borradores/nuevo">Crear un borrador nuevo</a></p>{% else %}<p>Primero guardá tu perfil.</p>{% endif %}
+{% for d in drafts %}<p><a href="/cuenta/borradores/{{d.id}}">Borrador del {{d.created_at.strftime('%d/%m/%Y')}}</a> ({{d.business_ids|length}} lugares)</p>{% else %}<p>No hay borradores guardados.</p>{% endfor %}</section>
+<section class="business-card"><h2>Privacidad y sesión</h2><p>Podés eliminar cualquier borrador o retirar tus permisos promocionales desmarcando las casillas y guardando. Para pedir eliminación del resto de tus datos, enviá la solicitud de abajo; no es un borrado automático completo de la identidad de Supabase Auth.</p>
+<form method="post" action="/cuenta/solicitar-eliminacion" onsubmit="return confirm('¿Querés solicitar la eliminación de tus datos y borrar los borradores?')"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Solicitar eliminación de datos</button></form>
+<form method="post" action="/cuenta/salir" style="margin-top:20px"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Cerrar sesión</button></form></section></main></body></html>

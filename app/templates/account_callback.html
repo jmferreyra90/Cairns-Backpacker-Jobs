@@ -1,0 +1,20 @@
+<!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Verificando tu cuenta</title></head>
+<body><main><h1>Verificando tu email…</h1><p id="message" role="status">Estamos comprobando tu acceso.</p></main>
+<script>
+(async()=>{
+  const fragment = window.location.hash.slice(1);
+  // Remove bearer token from the browser address bar immediately.
+  window.history.replaceState(null, '', '/cuenta/callback');
+  const params=new URLSearchParams(fragment);
+  const token=params.get('access_token');
+  if(!token){document.getElementById('message').textContent='No se encontró un token de acceso. Volvé a solicitar el enlace.';return;}
+  try {
+    const response=await fetch('/cuenta/confirmar',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      access_token:token,state:{{state|tojson}},csrf_token:{{csrf_token|tojson}}
+    })});
+    const result=await response.json();
+    if(!response.ok){throw Error(result.error||'No se pudo verificar el acceso.');}
+    window.location.replace(result.next);
+  } catch(error){ document.getElementById('message').textContent=error.message; }
+})();
+</script></body></html>
