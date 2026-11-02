@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prueba de envío a mi email</title><link rel="stylesheet" href="{{url_for('static',path='css/style.css')}}">
+<style>main{max-width:800px;margin:2em auto}.preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#fafafa;border:1px solid #ddd;border-radius:8px;padding:1rem}.note{border-left:4px solid #c48919;padding:8px 12px;background:#fff9e9}.ok{border-left-color:#39875c;background:#f1fff6}a.link{display:inline-block;margin:8px 10px 8px 0}</style>
+</head><body><main>
+<h1>Prueba privada: enviarme un email</h1><p><a href="/cuenta">← Mi cuenta</a> {% if draft_id %} · <a href="/cuenta/borradores/{{draft_id}}">Volver al borrador</a>{% endif %}</p>
+<p class="note"><strong>Importante:</strong> este paso contacta realmente a Gmail o Outlook, pero <strong>únicamente</strong> para enviar un email a tu propia dirección verificada. Ninguna empresa recibirá nada.</p>
+{% if error %}<p role="alert" class="note">{{error}}</p>{% endif %}
+{% if notice == 'email-distinto' %}<p class="note">Conectaste una dirección diferente a tu cuenta verificada. Usá la misma dirección para ambas cuentas.</p>{% endif %}
+{% if notice == 'conexion-fallida' %}<p class="note">No se pudo completar la autorización. Revisá las credenciales OAuth y las URLs de callback.</p>{% endif %}
+{% if notice == 'reconectar' %}<p class="note">La conexión venció o Render se reinició. Volvé a conectar el email.</p>{% endif %}
+{% if notice == 'cv-vencido' %}<p class="note">El CV de prueba está vencido. Subí otro desde el borrador.</p>{% endif %}
+{% if notice == 'conectado' %}<p class="note ok">Cuenta de email autorizada. Revisá el destinatario y confirmá si querés enviar.</p>{% endif %}
+{% if attempt %}
+<section class="business-card"><h2>Resultado del único intento</h2>
+<p>Proveedor: <strong>{{attempt.provider}}</strong></p>
+<p>Destinatario: <strong>{{attempt.recipient_email}}</strong></p>
+{% if attempt.status == 'accepted' %}
+<p class="note ok">El proveedor aceptó la solicitud. Esto <strong>no garantiza entrega</strong>. Revisá Recibidos y Enviados.</p>
+{% elif attempt.status == 'rejected' %}
+<p class="note">El proveedor rechazó la solicitud (HTTP {{attempt.provider_http_status}}). No se reintentará con este borrador.</p>
+{% else %}
+<p class="note">Estado <strong>no confirmado</strong>. El mensaje podría haberse enviado. Revisá Enviados antes de hacer cualquier nueva prueba con un borrador diferente.</p>
+{% endif %}
+<p>Para evitar duplicados, este borrador no permitirá un segundo intento.</p></section>
+{% elif ready %}
+<section class="business-card"><h2>Antes de continuar</h2>
+<p>Destinatario real: <strong>{{email}}</strong></p><p>Adjunto: <strong>{{filename}}</strong> (CV ficticio)</p>
+<p>Asunto:</p><div class="preview">{{subject}}</div>
+<p>Mensaje:</p><div class="preview">{{body}}</div>
+</section>
+<section class="business-card"><h2>Conectar el proveedor de correo</h2>
+{% for p in providers %}<a class="link" href="/cuenta/borradores/{{draft_id}}/prueba/conectar/{{p}}">Conectar {{'Gmail' if p=='google' else 'Outlook'}}</a>{% else %}<p>No se configuró un proveedor OAuth.</p>{% endfor %}
+{% if provider %}<p class="note ok">Conectado: <strong>{{provider}}</strong>. El acceso temporal vence en unos minutos.</p>
+<form method="post" action="/cuenta/borradores/{{draft_id}}/prueba/enviar">
+<input type="hidden" name="csrf_token" value="{{csrf_token}}">
+<p><label><input type="checkbox" name="confirm_self_send" value="true" required> Confirmo el envío de <strong>un único email real</strong> con mi CV ficticio a mi propia dirección verificada. No enviar a empresas.</label></p>
+<button type="submit">Enviar un email de prueba a mí mismo</button>
+</form>{% else %}<p>Conectá una cuenta con el mismo email para habilitar la confirmación.</p>{% endif %}
+</section>
+{% else %}<p>No hay un CV ficticio vigente. Volvé al borrador, subí un archivo de prueba y regresá.</p>{% endif %}
+</main></body></html>

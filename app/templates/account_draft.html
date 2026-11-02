@@ -22,6 +22,14 @@
 <input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Iniciar simulación (no envía emails)</button></form>
 {% else %}<p>Subí un CV ficticio para poder simular la cola.</p>{% endif %}
 </section>
+{% if self_test_beta %}
+<section class="business-card">
+<h2>Milestone 12 — email a tu propia cuenta</h2>
+<p>Esta prueba real sólo se puede enviar a tu email verificado, nunca a negocios.
+Se permite un único intento por borrador y necesitás un CV ficticio vigente.</p>
+<a href="/cuenta/borradores/{{draft_id}}/prueba">Abrir prueba de envío a mí mismo →</a>
+</section>
+{% endif %}
 {% endif %}
 {% for p in previews %}<article class="business-card preview" {% if not loop.first %}hidden{% endif %}><h2>{{p.business}}</h2><p><strong>Asunto:</strong> {{p.subject}}</p><div class="body">{{p.body}}</div></article>{% else %}<p>Los negocios de este borrador ya no están disponibles.</p>{% endfor %}
 {% if previews %}<button type="button" id="prev">← Anterior</button> <span id="counter"></span> <button type="button" id="next">Siguiente →</button>{% endif %}

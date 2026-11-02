@@ -252,7 +252,9 @@ def view_draft(request: Request, draft_id: str):
                          "expired": expires <= datetime.now(timezone.utc)}
         simulation_id = simulation.id if simulation else None
     return page(request, "account_draft.html", draft_id=draft_id, previews=previews,
-                file_info=file_info, simulation_id=simulation_id, file_beta=FILE_BETA)
+                file_info=file_info, simulation_id=simulation_id, file_beta=FILE_BETA,
+                self_test_beta=os.getenv("STAGING_ENABLE_SELF_TEST", "false").lower() == "true" and
+                account.email == os.getenv("SELF_TEST_OWNER_EMAIL", "").lower().strip())
 
 
 @router.post("/borradores/{draft_id}/eliminar")

@@ -19,6 +19,19 @@ if IS_RENDER and MODE != "staging":
 STAGING_ENABLE_FORMS = os.getenv("STAGING_ENABLE_FORMS", "false").strip().lower() == "true"
 STAGING_ENABLE_ACCOUNTS = os.getenv("STAGING_ENABLE_ACCOUNTS", "false").strip().lower() == "true"
 STAGING_ENABLE_DRAFT_FILES = os.getenv("STAGING_ENABLE_DRAFT_FILES", "false").strip().lower() == "true"
+STAGING_ENABLE_SELF_TEST = os.getenv("STAGING_ENABLE_SELF_TEST", "false").strip().lower() == "true"
+if STAGING_ENABLE_SELF_TEST:
+    if MODE != "staging" or not (STAGING_ENABLE_ACCOUNTS and STAGING_ENABLE_DRAFT_FILES):
+        raise RuntimeError("Self-send beta requires staging, accounts and private CV beta")
+    if os.getenv("ENABLE_REAL_SEND", "false").lower() == "true":
+        raise RuntimeError("Employer email sending must remain disabled")
+    if "@" not in os.getenv("SELF_TEST_OWNER_EMAIL", ""):
+        raise RuntimeError("Configure SELF_TEST_OWNER_EMAIL with your verified sign-in email")
+    if not any(os.getenv(k) and os.getenv(v) for k, v in (
+        ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"),
+        ("MICROSOFT_CLIENT_ID", "MICROSOFT_CLIENT_SECRET"),
+    )):
+        raise RuntimeError("Configure Google or Microsoft OAuth credentials for self-test")
 if STAGING_ENABLE_DRAFT_FILES:
     if not STAGING_ENABLE_ACCOUNTS or MODE != "staging":
         raise RuntimeError("Private CV beta requires staging accounts")
@@ -68,6 +81,8 @@ if STAGING_ENABLE_ACCOUNTS:
     from app import models_accounts  # noqa: E402,F401
     if STAGING_ENABLE_DRAFT_FILES:
         from app import models_draft_ops  # noqa: E402,F401
+    if STAGING_ENABLE_SELF_TEST:
+        from app import models_selftest  # noqa: E402,F401
     with engine.begin() as connection:
         connection.exec_driver_sql("CREATE SCHEMA IF NOT EXISTS app_private")
 from app.routes import businesses  # noqa: E402
@@ -126,6 +141,9 @@ else:
         if STAGING_ENABLE_DRAFT_FILES:
             from app.routes import draft_ops
             app.include_router(draft_ops.router)
+        if STAGING_ENABLE_SELF_TEST:
+            from app.routes import selftest
+            app.include_router(selftest.router)
 
 
 @app.get("/health", include_in_schema=False)
