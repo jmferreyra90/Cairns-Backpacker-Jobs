@@ -1,5 +1,28 @@
 <!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vista previa del borrador</title><link rel="stylesheet" href="{{url_for('static',path='css/style.css')}}"><style>.body{white-space:pre-wrap;line-height:1.6}.preview[hidden]{display:none}</style></head>
-<body><main style="max-width:800px"><h1>Tu borrador guardado</h1><p><a href="/cuenta">← Mi cuenta</a></p><p><strong>No envía emails, no incluye CV.</strong></p>
+<body><main style="max-width:800px"><h1>Tu borrador guardado</h1><p><a href="/cuenta">← Mi cuenta</a></p><p><strong>Beta privada:</strong> las simulaciones no envían emails. Usá únicamente archivos ficticios.</p>
+{% if file_beta %}
+<section class="business-card"><h2>CV de prueba (privado)</h2>
+{% if file_info %}<p>Archivo: <strong>{{file_info.filename}}</strong> ({{(file_info.size_bytes/1024)|round(1)}} KB)</p>
+{% if file_info.expired %}<p>El CV venció y ya no puede usarse. Será eliminado durante la limpieza programada.</p>{% else %}<p>El archivo se elimina a las 24 horas o antes si lo borrás.</p>{% endif %}
+<form method="post" action="/cuenta/borradores/{{draft_id}}/cv/eliminar"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Eliminar CV de prueba</button></form>
+{% else %}
+<form method="post" action="/cuenta/borradores/{{draft_id}}/cv" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{csrf_token}}">
+<p><label>Subí un CV ficticio PDF o DOCX, máximo 5 MB <input type="file" name="cv" accept=".pdf,.docx" required></label></p>
+<p><label><input type="checkbox" name="dummy_confirmed" value="true" required> Confirmo que es un CV inventado, sin datos reales.</label></p>
+<button type="submit">Guardar CV de prueba</button>
+</form>
+{% endif %}
+</section>
+<section class="business-card"><h2>Cola persistente (simulación)</h2>
+{% if simulation_id %}
+<p>Ya existe una simulación para este borrador.</p><a href="/cuenta/colas/{{simulation_id}}">Ver progreso</a>
+{% elif file_info and not file_info.expired %}
+<form method="post" action="/cuenta/borradores/{{draft_id}}/simular">
+<input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Iniciar simulación (no envía emails)</button></form>
+{% else %}<p>Subí un CV ficticio para poder simular la cola.</p>{% endif %}
+</section>
+{% endif %}
 {% for p in previews %}<article class="business-card preview" {% if not loop.first %}hidden{% endif %}><h2>{{p.business}}</h2><p><strong>Asunto:</strong> {{p.subject}}</p><div class="body">{{p.body}}</div></article>{% else %}<p>Los negocios de este borrador ya no están disponibles.</p>{% endfor %}
 {% if previews %}<button type="button" id="prev">← Anterior</button> <span id="counter"></span> <button type="button" id="next">Siguiente →</button>{% endif %}
 <form method="post" action="/cuenta/borradores/{{draft_id}}/eliminar" onsubmit="return confirm('¿Eliminar este borrador?')" style="margin-top:30px"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Eliminar borrador</button></form></main>

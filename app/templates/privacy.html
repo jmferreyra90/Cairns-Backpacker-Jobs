@@ -19,6 +19,7 @@
   <p>Preparar postulaciones, mantener un registro de contacto y, si aceptás por separado, enviarte novedades promocionales o invitaciones para dar tu opinión.</p>
   <p>Las preferencias de comunicaciones se guardan en la base de datos después de comprobar que controlás la dirección de email mediante Gmail u Outlook.</p>
   <h2>CV y carta de presentación</h2>
+  <p>En la beta privada de almacenamiento solo se aceptan CVs ficticios. Los archivos se guardan en un bucket privado de Supabase, se marcan para caducar a las 24 horas y se borran con una tarea programada o manualmente. Si falla la limpieza, podrían permanecer más tiempo. No uses información personal real en el CV de prueba.</p>
   <p>Durante esta versión local de prueba, tu CV y los datos de la postulación se mantienen temporalmente en la memoria del servidor durante un máximo de 20 minutos. Se descartan después del envío de prueba confirmado, al vencer el plazo o cuando se reinicia el servidor. El procesador de archivos de la web puede utilizar almacenamiento temporal del sistema operativo al recibir un archivo grande.</p>
   <h2>Destinatarios</h2>
   <p>En el modo simulación no se envía ningún email. El envío real permanece deshabilitado por defecto y solo puede activarse expresamente para pruebas controladas. Si lo activás y confirmás, la postulación y tu CV se transmitirán a los negocios seleccionados mediante tu cuenta conectada.</p>

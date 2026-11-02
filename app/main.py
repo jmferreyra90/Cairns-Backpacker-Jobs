@@ -18,6 +18,17 @@ if IS_RENDER and MODE != "staging":
 
 STAGING_ENABLE_FORMS = os.getenv("STAGING_ENABLE_FORMS", "false").strip().lower() == "true"
 STAGING_ENABLE_ACCOUNTS = os.getenv("STAGING_ENABLE_ACCOUNTS", "false").strip().lower() == "true"
+STAGING_ENABLE_DRAFT_FILES = os.getenv("STAGING_ENABLE_DRAFT_FILES", "false").strip().lower() == "true"
+if STAGING_ENABLE_DRAFT_FILES:
+    if not STAGING_ENABLE_ACCOUNTS or MODE != "staging":
+        raise RuntimeError("Private CV beta requires staging accounts")
+    if os.getenv("ENABLE_REAL_SEND", "false").strip().lower() == "true":
+        raise RuntimeError("No employer sends in private CV beta")
+    if not os.getenv("SUPABASE_SECRET_KEY", "").startswith("sb_secret_"):
+        raise RuntimeError("Set SUPABASE_SECRET_KEY (server-only) before enabling CV beta")
+    if len(os.getenv("CV_CLEANUP_TOKEN", "")) < 32:
+        raise RuntimeError("Set 32+ character CV_CLEANUP_TOKEN")
+
 if STAGING_ENABLE_ACCOUNTS and MODE != "staging":
     raise RuntimeError("Account beta is restricted to private staging")
 if STAGING_ENABLE_ACCOUNTS:
@@ -55,6 +66,8 @@ from app import models, models_campaign, models_directory  # noqa: E402,F401
 from app.database import Base, engine  # noqa: E402
 if STAGING_ENABLE_ACCOUNTS:
     from app import models_accounts  # noqa: E402,F401
+    if STAGING_ENABLE_DRAFT_FILES:
+        from app import models_draft_ops  # noqa: E402,F401
     with engine.begin() as connection:
         connection.exec_driver_sql("CREATE SCHEMA IF NOT EXISTS app_private")
 from app.routes import businesses  # noqa: E402
@@ -110,6 +123,9 @@ else:
     if STAGING_ENABLE_ACCOUNTS:
         from app.routes import account_beta
         app.include_router(account_beta.router)
+        if STAGING_ENABLE_DRAFT_FILES:
+            from app.routes import draft_ops
+            app.include_router(draft_ops.router)
 
 
 @app.get("/health", include_in_schema=False)

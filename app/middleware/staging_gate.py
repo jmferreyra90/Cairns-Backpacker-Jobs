@@ -14,7 +14,8 @@ class StagingGateMiddleware(BaseHTTPMiddleware):
         self.password = password
 
     async def dispatch(self, request, call_next):
-        if request.url.path == "/health":
+        if request.url.path in ("/health", "/internal/cleanup-expired-cvs"):
+            # The maintenance endpoint performs its own constant-time secret check.
             return await call_next(request)
 
         authorization = request.headers.get("authorization", "")

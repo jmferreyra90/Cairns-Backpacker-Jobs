@@ -20,6 +20,8 @@ from app.database import SessionLocal
 from app.models import Business
 from app.models_directory import BusinessContactReview
 from app.models_accounts import ApplicantAccount, ApplicationDraft, ErasureRequest, WebSession
+from app.models_draft_ops import DraftCV, DraftSimulation
+from app.services.private_cv import remove_private, CVStorageError
 from app.services.account_auth import (
     AuthServiceError, clear_session_cookie, current_account, identity_from_access_token,
     request_magic_link, revoke_session, set_session_cookie, start_web_session,
@@ -27,7 +29,8 @@ from app.services.account_auth import (
 
 router = APIRouter(prefix="/cuenta")
 templates = Jinja2Templates(directory="app/templates")
-PRIVACY_VERSION = "2026-11-beta1"
+PRIVACY_VERSION = "2026-11-beta2"
+FILE_BETA = os.getenv("STAGING_ENABLE_DRAFT_FILES", "false").lower() == "true"
 
 
 def csrf(request: Request):
@@ -238,7 +241,18 @@ def view_draft(request: Request, draft_id: str):
             subject = draft.subject.replace("[Business Name]", b.name)
             previews.append({"business": b.name, "subject": subject,
                              "body": f"Dear Hiring Manager,\n\n{letter}\n\nKind regards,\n{account.full_name}\n{account.phone}"})
-    return page(request, "account_draft.html", draft_id=draft_id, previews=previews)
+        attachment = db.query(DraftCV).filter(DraftCV.draft_id == draft.id).first() if FILE_BETA else None
+        simulation = db.query(DraftSimulation).filter(DraftSimulation.draft_id == draft.id).first() if FILE_BETA else None
+        file_info = None
+        if attachment:
+            expires = attachment.expires_at
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            file_info = {"filename": attachment.filename, "size_bytes": attachment.size_bytes,
+                         "expired": expires <= datetime.now(timezone.utc)}
+        simulation_id = simulation.id if simulation else None
+    return page(request, "account_draft.html", draft_id=draft_id, previews=previews,
+                file_info=file_info, simulation_id=simulation_id, file_beta=FILE_BETA)
 
 
 @router.post("/borradores/{draft_id}/eliminar")
@@ -252,6 +266,13 @@ def delete_draft(request: Request, draft_id: str, csrf_token: str = Form("")):
         draft = db.get(ApplicationDraft, draft_id)
         if not draft or draft.account_id != account.id:
             return page(request, "account_error.html", message="Borrador no encontrado.", status_code=404)
+        attached = db.query(DraftCV).filter(DraftCV.draft_id == draft.id).first() if FILE_BETA else None
+        if attached:
+            try:
+                remove_private(attached.storage_path)
+            except CVStorageError:
+                return page(request, "account_error.html",
+                            message="No pudimos eliminar el archivo del borrador. Intentá de nuevo.", status_code=502)
         db.delete(draft)
         db.commit()
     return redirect("/cuenta?notice=borrador-eliminado")
@@ -270,6 +291,14 @@ def request_erasure(request: Request, csrf_token: str = Form("")):
         ).first()
         if not pending:
             db.add(ErasureRequest(account_id=account.id, email=account.email))
+        files = ((db.query(DraftCV).join(ApplicationDraft, DraftCV.draft_id == ApplicationDraft.id)
+                 .filter(ApplicationDraft.account_id == account.id).all()) if FILE_BETA else [])
+        try:
+            for cv in files:
+                remove_private(cv.storage_path)
+        except CVStorageError:
+            return page(request, "account_error.html",
+                        message="No se pudieron borrar todos los archivos. Reintentá tu solicitud.", status_code=502)
         account.full_name = ""
         account.phone = ""
         account.marketing_opt_in = False

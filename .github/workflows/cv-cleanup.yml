@@ -1,0 +1,19 @@
+name: Expire dummy CV files
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+jobs:
+  delete-expired-dummy-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request authenticated cleanup
+        env:
+          URL: ${{ secrets.RENDER_STAGING_URL }}
+          TOKEN: ${{ secrets.CV_CLEANUP_TOKEN }}
+        run: |
+          test -n "$URL" && test -n "$TOKEN"
+          curl --fail --show-error --silent --location \
+            --max-time 180 --retry 2 --retry-all-errors \
+            -X POST -H "X-Maintenance-Token: $TOKEN" \
+            "${URL%/}/internal/cleanup-expired-cvs"

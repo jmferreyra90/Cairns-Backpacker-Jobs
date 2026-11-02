@@ -9,7 +9,7 @@
 <label class="field">Teléfono <input required name="phone" type="tel" maxlength="40" value="{{account.phone}}" placeholder="+61 400 000 000"></label>
 <label class="option"><input type="checkbox" name="marketing_opt_in" value="true" {% if account.marketing_opt_in %}checked{% endif %}> Quiero recibir comunicaciones promocionales por email.</label>
 <label class="option"><input type="checkbox" name="feedback_opt_in" value="true" {% if account.feedback_opt_in %}checked{% endif %}> Acepto invitaciones por email para dar feedback.</label>
-<p><small>Conservaremos tu nombre, email verificado, teléfono, preferencias y borradores para gestionar tu cuenta. No enviamos emails promocionales durante esta beta. No almacenamos CVs aquí. Antes del lanzamiento se publicará una política de privacidad final con el responsable, ubicación de los datos y plazos de conservación.</small></p>
+<p><small>Conservaremos tu nombre, email verificado, teléfono, preferencias y borradores para gestionar tu cuenta. No enviamos emails promocionales durante esta beta. En la beta de almacenamiento se admiten solo CVs ficticios: se guardan en un bucket privado con vencimiento de 24 horas. El borrado físico requiere mantenimiento diario, que puede retrasarse si falla el servicio. No se envían emails. Antes del lanzamiento se publicará una política de privacidad final con el responsable, ubicación de los datos y plazos de conservación.</small></p>
 <label class="option"><input type="checkbox" required name="privacy_acknowledged" value="true"> Leí la información sobre el uso de mis datos en esta beta.</label>
 <button type="submit">Guardar perfil</button></form></section>
 <section class="business-card"><h2>Mis borradores</h2>
