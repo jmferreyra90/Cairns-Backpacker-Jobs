@@ -42,8 +42,13 @@ def request_magic_link(email: str, state: str):
     try:
         with httpx.Client(timeout=10) as client:
             response = client.post(
-                base + "/auth/v1/otp", headers=_headers(),
-                json={"email": email, "create_user": True, "email_redirect_to": callback_url},
+                base + "/auth/v1/otp",
+                headers=_headers(),
+                params={"redirect_to": callback_url},
+                json={
+                    "email": email,
+                    "create_user": True,
+                },
             )
         if response.status_code >= 400:
             raise AuthServiceError("No se pudo solicitar el enlace. Revisá los límites de Supabase Auth.")
