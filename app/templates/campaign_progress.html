@@ -14,8 +14,12 @@
   </style>
 </head>
 <body>
+{% include "partials/site_nav.html" %}
+
 <main>
   <h1>Progreso de tus postulaciones</h1>
+{% include "partials/creator_links.html" %}
+
   {% if mode == 'simulated' %}
     <p class="caution"><strong>Modo simulación:</strong> ningún correo se enviará realmente.</p>
   {% else %}
@@ -90,5 +94,6 @@
   refreshStatus();
   intervalId = setInterval(refreshStatus, 2000);
 </script>
+{% include "partials/site_footer.html" %}
 </body>
 </html>

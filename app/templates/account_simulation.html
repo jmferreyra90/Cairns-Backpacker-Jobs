@@ -1,5 +1,9 @@
-<!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Simulación de postulaciones</title><link rel="stylesheet" href="{{url_for('static',path='css/style.css')}}"><style>main{max-width:780px;margin:2em auto}.progress{height:16px;background:#eee;border-radius:9px;overflow:hidden}.bar{height:100%;width:0;background:#2b9365;transition:width .25s}.item{padding:12px;margin:8px 0;background:#fff;border:1px solid #ddd;border-radius:6px;display:flex;justify-content:space-between}</style></head><body><main>
-<h1>Simulación de postulaciones</h1><p><a href="/cuenta">← Mi cuenta</a></p>
+<!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Simulación de postulaciones</title><link rel="stylesheet" href="{{url_for('static',path='css/style.css')}}"><style>main{max-width:780px;margin:2em auto}.progress{height:16px;background:#eee;border-radius:9px;overflow:hidden}.bar{height:100%;width:0;background:#2b9365;transition:width .25s}.item{padding:12px;margin:8px 0;background:#fff;border:1px solid #ddd;border-radius:6px;display:flex;justify-content:space-between}</style></head><body>
+{% include "partials/site_nav.html" %}
+<main>
+<h1>Simulación de postulaciones</h1>
+{% include "partials/creator_links.html" %}
+<p><a href="/cuenta">← Mi cuenta</a></p>
 <p><strong>Modo de prueba.</strong> Los mensajes no se envían a ningún negocio. La cola se guarda en PostgreSQL y puede reanudarse después de reiniciar Render.</p>
 <div class="progress" role="progressbar" aria-label="Progreso de simulación" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progress"><div class="bar" id="bar"></div></div>
 <p role="status" id="counter">Cargando…</p><div id="items"></div><p id="message" role="alert"></p>
@@ -25,4 +29,5 @@ async function tick(){if(!running||working)return;working=true;try{
 }
 async function init(){try{const res=await fetch(`/cuenta/colas/${id}/estado`,{credentials:'same-origin'});if(!res.ok)throw Error('Sin acceso a esta cola.');render(await res.json());if(running)setTimeout(tick,1000);}catch(e){running=false;msg.textContent=e.message;}}
 document.getElementById('pause').onclick=()=>{running=false};document.getElementById('resume').onclick=()=>{if(!running){running=true;tick()}};init();
-</script></body></html>
+</script>{% include "partials/site_footer.html" %}
+</body></html>

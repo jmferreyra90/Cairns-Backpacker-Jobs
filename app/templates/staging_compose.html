@@ -14,7 +14,11 @@
   </style>
 </head>
 <body>
-<header><h1>Prepará tu postulación — Prueba</h1></header>
+{% include "partials/site_nav.html" %}
+
+<header><h1>Prepará tu postulación — Prueba</h1>
+{% include "partials/creator_links.html" %}
+</header>
 <main>
   <div class="demo-warning" role="note">
     <strong>Solo pruebas internas.</strong> Usá un nombre, email, teléfono y CV <strong>ficticios</strong>.
@@ -39,5 +43,6 @@
   {% else %}<p>No hay lugares disponibles para esta prueba.</p>{% endif %}
   <p><a href="/">← Volver al directorio</a></p>
 </main>
+{% include "partials/site_footer.html" %}
 </body>
 </html>

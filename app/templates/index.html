@@ -17,8 +17,12 @@
   </style>
 </head>
 <body>
+{% include "partials/site_nav.html" %}
+
   <header>
     <h1>Buscá trabajo en Cairns</h1>
+{% include "partials/creator_links.html" %}
+
     <p>Explorá lugares reales, elegí dónde querés postularte y prepará tu CV.</p>
     <p class="muted">Los lugares sin contacto por email todavía no se pueden seleccionar. Tener un email publicado no significa que esté aprobado para enviar postulaciones reales.</p>
   </header>
@@ -32,6 +36,12 @@
       {% endfor %}
     </div>
     <p id="displayCount"></p>
+  <div class="bulk-controls" aria-label="Controles de selección">
+    <button type="button" id="selectAllVisible">Seleccionar todos los visibles</button>
+    <button type="button" id="clearSelection">Quitar selección</button>
+    <span class="muted">Podés revisar la selección antes de continuar.</span>
+  </div>
+
     <div id="businessList">
       {% for item in rows %}
       {% set b = item.business %}
@@ -83,7 +93,7 @@
     document.getElementById('selectedLabel').textContent=n===1?'lugar seleccionado':'lugares seleccionados';
   }
   boxes.forEach(box=>box.addEventListener('change',()=>{
-    if(boxes.filter(b=>b.checked).length>10){box.checked=false;alert('Máximo 10 lugares por campaña.');}
+    if(boxes.filter(b=>b.checked).length>500){box.checked=false;alert('Máximo 500 lugares por selección.');}
     updateSelection();
   }));
   document.getElementById('continueButton').addEventListener('click',()=>{
@@ -91,7 +101,18 @@
     if(!ids.length){alert('Seleccioná al menos un lugar con email para continuar.');return;}
     window.location.href='/compose?ids='+encodeURIComponent(ids.join(','));
   });
+  document.getElementById('selectAllVisible').addEventListener('click',()=>{
+    const targets=boxes.filter(b=>!b.disabled&&!b.closest('.business-card').hidden);
+    const remaining=500-boxes.filter(b=>b.checked).length;
+    targets.filter(b=>!b.checked).slice(0,remaining).forEach(b=>b.checked=true);
+    updateSelection();
+    if(targets.some(b=>!b.checked))alert('Se alcanzó el máximo de 500 lugares.');
+  });
+  document.getElementById('clearSelection').addEventListener('click',()=>{
+    boxes.forEach(b=>b.checked=false);updateSelection();
+  });
   filterCards();updateSelection();
 </script>
+{% include "partials/site_footer.html" %}
 </body>
 </html>

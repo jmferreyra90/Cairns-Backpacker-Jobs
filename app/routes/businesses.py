@@ -63,3 +63,9 @@ def home(request: Request):
             name="index.html",
             context={"rows": rows, "category_labels": CATEGORY_LABELS},
         )
+
+
+@router.get("/privacidad", response_class=HTMLResponse)
+def privacy_page(request: Request):
+    return templates.TemplateResponse(request=request, name="privacy.html", context={},
+                                      headers={"Cache-Control": "no-store"})

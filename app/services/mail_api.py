@@ -102,6 +102,9 @@ async def send_employer_application(connection: Connection, draft: Draft, previe
     No automatic retries: ambiguous failures could duplicate an application.
     """
     recipient = preview["to"]
+    addresses = [a.strip() for a in recipient.split(",") if a.strip()]
+    if not addresses or len(addresses) != len(set(addresses)) or len(addresses) > 6:
+        raise SendFailure("Lista de destinatarios inválida.")
     content_type = (
         "application/pdf" if draft.cv_filename.lower().endswith(".pdf")
         else "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -135,7 +138,7 @@ async def send_employer_application(connection: Connection, draft: Draft, previe
                         "message": {
                             "subject": preview["subject"],
                             "body": {"contentType": "Text", "content": preview["body"]},
-                            "toRecipients": [{"emailAddress": {"address": recipient}}],
+                            "toRecipients": [{"emailAddress": {"address": address}} for address in addresses],
                             "attachments": [{
                                 "@odata.type": "#microsoft.graph.fileAttachment",
                                 "name": draft.cv_filename,

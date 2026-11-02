@@ -2,13 +2,17 @@
 <title>Administrar negocios — Cairns Backpacker Jobs</title>
 <link rel="stylesheet" href="{{ url_for('static',path='css/style.css') }}">
 <style>table{width:100%;border-collapse:collapse;font-size:0.9rem}td,th{border-bottom:1px solid #ddd;padding:9px;text-align:left}th{white-space:nowrap}.small{color:#555;font-size:.85rem}.top{display:flex;justify-content:space-between;align-items:center}.table-wrap{overflow-x:auto}.import-panel{padding:16px;background:white;border:1px solid #ddd;border-radius:8px;margin-top:24px}body{max-width:1200px}</style>
-</head><body><header class="top"><div><h1>Directorio — Administración local</h1><p>Solo desarrollo local. No publiques esta ruta en internet.</p></div><a href="/">Ver sitio</a></header>
+</head><body>
+{% include "partials/site_nav.html" %}
+<header class="top"><div><h1>Directorio — Administración local</h1>
+{% include "partials/creator_links.html" %}
+<p>Solo desarrollo local. No publiques esta ruta en internet.</p></div><a href="/">Ver sitio</a></header>
 <main>
 {% if request.query_params.get('imported') is not none %}<p role="status">Nuevos: {{ request.query_params.get('imported') }}; omitidos: {{ request.query_params.get('skipped') }}.</p>{% endif %}
 <p><a href="/admin/businesses/new">+ Agregar negocio</a></p>
 <div class="table-wrap"><table><thead><tr><th>Negocio</th><th>Categoría</th><th>Email</th><th>Estado de contacto</th><th>Visible</th><th>Acción</th></tr></thead><tbody>
 {% for row in records %}
-<tr><td>{{ row.business.name }}</td><td>{{ row.business.category }}</td><td>{{ row.business.email or '—' }}</td><td>{{ status_labels.get(row.review.status if row.review else 'pending','Pendiente') }}</td><td>{{ 'Sí' if row.business.active else 'No' }}</td><td><a href="/admin/businesses/{{ row.business.id }}">Editar</a></td></tr>
+<tr><td>{{ row.business.name }}</td><td>{{ row.business.category }}</td><td>{{ row.business.email or '—' }}{% if row.extra_count %} <small>+{{ row.extra_count }} adicional(es)</small>{% endif %}</td><td>{{ status_labels.get(row.review.status if row.review else 'pending','Pendiente') }}</td><td>{{ 'Sí' if row.business.active else 'No' }}</td><td><a href="/admin/businesses/{{ row.business.id }}">Editar</a></td></tr>
 {% endfor %}
 </tbody></table></div>
 <div class="import-panel"><h2>Importar negocios desde CSV</h2>
@@ -17,4 +21,5 @@
 <input type="hidden" name="csrf" value="{{ csrf }}"><input type="file" name="csv_file" accept=".csv,text/csv" required>
 <button type="submit">Importar CSV</button></form>
 </div>
-</main></body></html>
+</main>{% include "partials/site_footer.html" %}
+</body></html>

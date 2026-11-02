@@ -3,8 +3,12 @@
 <link rel="stylesheet" href="{{ url_for('static',path='css/style.css') }}">
 <style>.form-field{display:flex;flex-direction:column;gap:5px;margin:12px 0}.form-field input,.form-field select,.form-field textarea{padding:10px;border:1px solid #bbb;border-radius:5px;width:100%;box-sizing:border-box}label{font-weight:500}.warn{padding:12px;background:#fff1dd;border-radius:6px}.ready{padding:12px;background:#e9f4e7;border-radius:6px}</style>
 </head><body>
+{% include "partials/site_nav.html" %}
+
 <p><a href="/admin/businesses">← Directorio</a></p>
 <h1>{{ 'Editar negocio' if business else 'Agregar negocio' }}</h1>
+{% include "partials/creator_links.html" %}
+
 {% if error %}<p role="alert">{{ error }}</p>{% endif %}
 <p class="warn">Guardar cambios <strong>retira cualquier aprobación previa</strong>. Para permitir envíos reales, tenés que aprobar el contacto nuevamente después de revisar la fuente.</p>
 <form method="post" action="/admin/businesses/save">
@@ -16,6 +20,9 @@
 <div class="form-field"><label>Dirección</label><input name="address" maxlength="250" value="{{ business.address if business and business.address else '' }}"></div>
 <div class="form-field"><label>Teléfono</label><input name="phone" maxlength="50" value="{{ business.phone if business and business.phone else '' }}"></div>
 <div class="form-field"><label>Email para postulaciones (dejar vacío si no está confirmado)</label><input name="email" type="email" maxlength="150" value="{{ business.email if business and business.email else '' }}"></div>
+<div class="form-field"><label>Emails adicionales de la misma empresa (uno por línea; hasta 5)</label>
+<textarea name="extra_emails" rows="4" placeholder="reception@hotel.com&#10;manager@hotel.com">{{ extra_emails }}</textarea>
+<small>Se incluyen como destinatarios del mismo mensaje (visibles entre sí) solo después de revisar su adecuación. No tienen que pertenecer a RR. HH.</small></div>
 <div class="form-field"><label>Website</label><input name="website" type="url" maxlength="250" value="{{ business.website if business and business.website else '' }}"></div>
 <div class="form-field"><label>URL de la fuente (obligatoria para aprobar email)</label><input name="source_url" type="url" maxlength="500" value="{{ review.source_url if review and review.source_url else '' }}"></div>
 <div class="form-field"><label>Notas de revisión (por qué este contacto acepta postulaciones)</label><textarea name="evidence" rows="3" maxlength="1500">{{ review.evidence if review and review.evidence else '' }}</textarea></div>
@@ -27,11 +34,12 @@
 <hr><h2>Verificación del email</h2>
 <p>Estado: <strong>{{ statuses.get(review.status if review else 'pending') }}</strong>. Email verificado: {{ 'Sí' if business.email_verified else 'No' }}. Fecha: {{ business.last_verified or '—' }}</p>
 {% if review and review.status=='approved' %}<p class="ready">Revisado para recibir postulaciones por email. Se revisará nuevamente antes de cada envío real.</p>{% endif %}
-<p>Solo aprobá contactos públicos destinados a recepción de CVs, o que el negocio haya confirmado expresamente para este fin. No alcanza con que el email figure en una web.</p>
+<p>Podés aprobar recepción, gerencia o emails generales si la fuente o el negocio confirma que aceptan consultas laborales. Revisá todos los emails adicionales antes de aprobar; no se exige un departamento de RR. HH.</p>
 <form method="post" action="/admin/businesses/{{ business.id }}/approve">
 <input type="hidden" name="csrf" value="{{ csrf }}">
-<label><input type="checkbox" name="confirmation" value="true" required> Confirmé que este email es un canal adecuado para postulaciones, y documenté la evidencia arriba.</label>
+<label><input type="checkbox" name="confirmation" value="true" required> Revisé todos los emails indicados y confirmé que son canales adecuados para consultas o postulaciones laborales, con evidencia documentada.</label>
 <p><button type="submit">Aprobar contacto para postulaciones</button></p>
 </form>
 {% endif %}
+{% include "partials/site_footer.html" %}
 </body></html>

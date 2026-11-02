@@ -13,8 +13,12 @@
   </style>
 </head>
 <body>
+{% include "partials/site_nav.html" %}
+
 <header>
   <h1>Revisá tus postulaciones</h1>
+{% include "partials/creator_links.html" %}
+
   <p>Revisá cada destinatario y su mensaje antes de iniciar una campaña.</p>
 </header>
 <main>
@@ -65,7 +69,7 @@
   <section class="business-card">
     <h2>Milestone 6 — Cola de postulaciones</h2>
     <p><strong>Recomendado:</strong> probá primero la simulación. Verás el avance y los estados de cada negocio sin enviar correos.</p>
-    <p>Máximo 10 negocios por campaña. El sistema no reintenta automáticamente solicitudes de resultado incierto.</p>
+    <p>Hasta 500 negocios por selección. El sistema no reintenta automáticamente solicitudes de resultado incierto.</p>
     <form method="post" action="/campaigns/start">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="mode" value="simulated">
@@ -107,5 +111,6 @@
   next.addEventListener('click', () => { if (current < previews.length - 1) displayPreview(current + 1); });
   if (previews.length) displayPreview(0);
 </script>
+{% include "partials/site_footer.html" %}
 </body>
 </html>

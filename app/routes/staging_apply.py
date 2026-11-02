@@ -17,7 +17,7 @@ from app.models_directory import BusinessContactReview
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-MAX_BUSINESSES = 10
+MAX_BUSINESSES = 500
 MAX_CV_SIZE = 5 * 1024 * 1024
 
 
@@ -116,7 +116,7 @@ async def review(
     if not expected or not hmac.compare_digest(expected, csrf_token):
         error = "Sesión vencida o solicitud inválida. Volvé a cargar la página."
     elif not businesses:
-        error = "Elegí de 1 a 10 lugares disponibles para la demostración."
+        error = "Elegí entre 1 y 500 lugares disponibles para la demostración."
     elif not test_data_confirmed:
         error = "Confirmá que estás usando datos de prueba ficticios."
     elif not 1 <= len(full_name) <= 100:

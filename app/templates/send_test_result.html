@@ -7,12 +7,17 @@
   <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 </head>
 <body>
+{% include "partials/site_nav.html" %}
+
 <main class="business-card">
   <h1>¡Prueba aceptada!</h1>
+{% include "partials/creator_links.html" %}
+
   <p>El proveedor de email aceptó el envío de prueba dirigido a <strong>{{ connected_email }}</strong>.</p>
   <p>Revisá tu bandeja de entrada y la carpeta de enviados; la aceptación no garantiza la entrega inmediata.</p>
   <p>No se contactó a ningún negocio. El CV y el token de acceso se descartaron de la memoria de esta app.</p>
   <p><a href="/">Volver al inicio</a></p>
 </main>
+{% include "partials/site_footer.html" %}
 </body>
 </html>

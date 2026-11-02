@@ -9,15 +9,15 @@ from app.database import SessionLocal
 from app.models import Business
 from app.models_campaign import Campaign, CampaignAttempt, now_utc
 from app.models_directory import BusinessContactReview
+from app.services.business_recipients import approved_recipients
 from app.services.email_builder import build_email_preview
 from app.services.mail_api import SendFailure, send_employer_application
 from app.services.session_store import clear, get_connection, get_draft
 
-MAX_PER_CAMPAIGN = 10
-MAX_PER_24_HOURS = 20
+MAX_PER_CAMPAIGN = 500
 SIMULATION_DELAY_SECONDS = 1
-REAL_DELAY_SECONDS = 8
-DUPLICATE_WINDOW_DAYS = 30
+REAL_DELAY_SECONDS = 2
+DUPLICATE_WINDOW_DAYS = 7
 
 
 def owner_hash(sid: str) -> str:
@@ -66,44 +66,40 @@ def preflight_real(db, draft, connection, businesses) -> str | None:
         review = db.get(BusinessContactReview, business.id)
         if not review or review.status != "approved":
             return f"{business.name}: contacto pendiente de aprobación para recibir postulaciones."
-        email = (business.email or "").strip().lower()
-        domain = email.rsplit("@", 1)[-1] if "@" in email else ""
-        if domain in {"example.com", "example.org", "example.net", "localhost", "invalid", "test"}:
-            return f"{business.name}: el email es de prueba."
+        recipients = approved_recipients(db, business)
+        if not recipients:
+            return f"{business.name}: no hay direcciones aprobadas para recibir postulaciones."
         verified = business.last_verified
         if not business.email_verified or verified is None or verified < cutoff.date():
             return f"{business.name}: verificá su email antes del envío real."
 
-    day_ago = datetime.now(timezone.utc) - timedelta(hours=24)
-    attempted_today = (
-        db.query(CampaignAttempt)
-        .join(Campaign, CampaignAttempt.campaign_id == Campaign.id)
-        .filter(
-            Campaign.sender_email == draft.email,
-            Campaign.mode == "real",
-            CampaignAttempt.attempted_at >= day_ago,
-            CampaignAttempt.status.in_(["sending", "accepted", "uncertain", "failed"]),
-        ).count()
-    )
-    if attempted_today + len(businesses) > MAX_PER_24_HOURS:
-        return f"Límite local: máximo {MAX_PER_24_HOURS} intentos en 24 horas por cuenta."
+    # No application-specific daily quota. Provider limits, individual
+    # approval, explicit consent and duplicate checks remain in force.
 
-    last_month = datetime.now(timezone.utc) - timedelta(days=DUPLICATE_WINDOW_DAYS)
-    prior = (
-        db.query(CampaignAttempt)
+    # Recently contacted businesses will be SKIPPED at campaign creation,
+    # rather than preventing the user from applying to every other business.
+    return None
+
+
+def recently_contacted_ids(db, sender_email: str, business_ids) -> set[int]:
+    """One-week deduplication, including sends with uncertain provider outcomes."""
+    ids = [int(x) for x in business_ids]
+    if not ids:
+        return set()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=DUPLICATE_WINDOW_DAYS)
+    rows = (
+        db.query(CampaignAttempt.business_id)
         .join(Campaign, CampaignAttempt.campaign_id == Campaign.id)
         .filter(
-            Campaign.sender_email == draft.email,
+            Campaign.sender_email == sender_email,
             Campaign.mode == "real",
-            CampaignAttempt.attempted_at >= last_month,
-            CampaignAttempt.status.in_(["sending", "accepted", "uncertain"]),
-            CampaignAttempt.business_id.in_([b.id for b in businesses]),
-        ).all()
+            CampaignAttempt.attempted_at >= cutoff,
+            CampaignAttempt.status.in_(("sending", "accepted", "uncertain")),
+            CampaignAttempt.business_id.in_(ids),
+        )
+        .all()
     )
-    if prior:
-        names = ", ".join(sorted({p.business_name for p in prior})[:3])
-        return f"Ya hay envíos recientes o inciertos a: {names}. No se duplicarán."
-    return None
+    return {r[0] for r in rows}
 
 
 def _finish_remaining(db, campaign_id: str, status: str, note: str):
@@ -130,6 +126,7 @@ async def run_campaign(campaign_id: str, sid: str) -> None:
         with SessionLocal() as db:
             attempts = db.query(CampaignAttempt).filter(
                 CampaignAttempt.campaign_id == campaign_id,
+                CampaignAttempt.status == "queued",
             ).order_by(CampaignAttempt.id).all()
             ids = [a.id for a in attempts]
             mode = db.get(Campaign, campaign_id).mode
@@ -173,6 +170,15 @@ async def run_campaign(campaign_id: str, sid: str) -> None:
                 preview = build_email_preview(
                     business, draft.full_name, draft.phone, draft.subject, draft.cover_letter
                 )
+                if mode == "real":
+                    recipients = approved_recipients(db, business)
+                    if not recipients or recipients[0] != attempt.recipient_email.lower():
+                        attempt.status = "failed"
+                        attempt.note = "Los contactos aprobados cambiaron antes del envío."
+                        attempt.finished_at = now_utc()
+                        db.commit()
+                        continue
+                    preview["to"] = ", ".join(recipients)
                 attempt.status = "sending"
                 attempt.attempted_at = now_utc()
                 db.commit()

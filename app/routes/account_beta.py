@@ -204,8 +204,8 @@ def save_draft(
         return redirect("/cuenta")
     subject, cover_letter = subject.strip(), cover_letter.strip()
     ids = list(dict.fromkeys(business_ids))
-    if not 1 <= len(ids) <= 10 or any(i <= 0 for i in ids) or not 1 <= len(subject) <= 150 or not 1 <= len(cover_letter) <= 4000:
-        return page(request, "account_error.html", message="Elegí 1 a 10 lugares y completá el asunto y la carta.", status_code=400)
+    if not 1 <= len(ids) <= 500 or any(i <= 0 for i in ids) or not 1 <= len(subject) <= 150 or not 1 <= len(cover_letter) <= 4000:
+        return page(request, "account_error.html", message="Elegí entre 1 y 500 lugares y completá el asunto y la carta.", status_code=400)
     with SessionLocal() as db:
         account = require_user(request, db)
         if not account or not account.full_name or not account.phone:

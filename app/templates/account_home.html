@@ -1,5 +1,9 @@
 <!doctype html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mi cuenta — Cairns Jobs</title><link rel="stylesheet" href="{{url_for('static',path='css/style.css')}}"><style>.field{display:block;margin:14px 0}.field input{width:100%;max-width:450px;padding:10px}.option{display:block;margin:15px 0}.page{max-width:760px}</style></head>
-<body><main class="page"><h1>Mi cuenta — beta privada</h1><p><a href="/">← Volver al directorio</a></p>
+<body>
+{% include "partials/site_nav.html" %}
+<main class="page"><h1>Mi cuenta — beta privada</h1>
+{% include "partials/creator_links.html" %}
+<p><a href="/">← Volver al directorio</a></p>
 {% if notice %}<p role="status">{{notice.replace('-', ' ')}}</p>{% endif %}
 <p>Tu email está verificado: <strong>{{account.email}}</strong></p>
 <section class="business-card"><h2>Datos y preferencias</h2>
@@ -17,4 +21,5 @@
 {% for d in drafts %}<p><a href="/cuenta/borradores/{{d.id}}">Borrador del {{d.created_at.strftime('%d/%m/%Y')}}</a> ({{d.business_ids|length}} lugares)</p>{% else %}<p>No hay borradores guardados.</p>{% endfor %}</section>
 <section class="business-card"><h2>Privacidad y sesión</h2><p>Podés eliminar cualquier borrador o retirar tus permisos promocionales desmarcando las casillas y guardando. Para pedir eliminación del resto de tus datos, enviá la solicitud de abajo; no es un borrado automático completo de la identidad de Supabase Auth.</p>
 <form method="post" action="/cuenta/solicitar-eliminacion" onsubmit="return confirm('¿Querés solicitar la eliminación de tus datos y borrar los borradores?')"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Solicitar eliminación de datos</button></form>
-<form method="post" action="/cuenta/salir" style="margin-top:20px"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Cerrar sesión</button></form></section></main></body></html>
+<form method="post" action="/cuenta/salir" style="margin-top:20px"><input type="hidden" name="csrf_token" value="{{csrf_token}}"><button type="submit">Cerrar sesión</button></form></section></main>{% include "partials/site_footer.html" %}
+</body></html>

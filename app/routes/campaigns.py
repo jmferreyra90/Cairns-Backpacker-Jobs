@@ -9,6 +9,7 @@ from app.database import SessionLocal
 from app.models_campaign import Campaign, CampaignAttempt
 from app.services.campaign_queue import (
     MAX_PER_CAMPAIGN, owner_hash, preflight_real, real_enabled, run_campaign,
+    recently_contacted_ids,
 )
 from app.services.session_store import get_connection, get_draft
 from app.routes.applications import get_selected_businesses
@@ -65,6 +66,7 @@ async def start_campaign(
             if problem:
                 raise HTTPException(status_code=400, detail=problem)
 
+        skipped_ids = recently_contacted_ids(db, draft.email, [b.id for b in businesses]) if mode == "real" else set()
         campaign = Campaign(
             session_hash=owner_hash(sid), sender_email=draft.email,
             provider=connection.provider if connection else "none",
@@ -78,7 +80,9 @@ async def start_campaign(
                 business_id=business.id,
                 business_name=business.name,
                 recipient_email=business.email,
-                status="queued",
+                status="skipped" if business.id in skipped_ids else "queued",
+                note=("Omitido: intento aceptado o incierto durante los últimos 7 días."
+                      if business.id in skipped_ids else None),
             ))
         db.commit()
         campaign_id = campaign.id
@@ -117,6 +121,7 @@ def campaign_status(request: Request, campaign_id: str):
             "simulated": sum(a.status == "simulated" for a in attempts),
             "failed": sum(a.status == "failed" for a in attempts),
             "uncertain": sum(a.status == "uncertain" for a in attempts),
+            "skipped": sum(a.status == "skipped" for a in attempts),
             "attempts": [
                 {
                     "business": a.business_name,

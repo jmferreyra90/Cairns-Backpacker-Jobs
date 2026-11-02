@@ -75,7 +75,7 @@ if MODE == "staging" and (STAGING_ENABLE_FORMS or STAGING_ENABLE_ACCOUNTS):
     if os.getenv("ENABLE_REAL_SEND", "false").lower() == "true":
         raise RuntimeError("Never enable real sending in hosted staging")
 
-from app import models, models_campaign, models_directory  # noqa: E402,F401
+from app import models, models_campaign, models_directory, models_business_emails  # noqa: E402,F401
 from app.database import Base, engine  # noqa: E402
 if STAGING_ENABLE_ACCOUNTS:
     from app import models_accounts  # noqa: E402,F401
@@ -88,6 +88,12 @@ if STAGING_ENABLE_ACCOUNTS:
 from app.routes import businesses  # noqa: E402
 
 Base.metadata.create_all(bind=engine)
+if engine.dialect.name == "postgresql":
+    # No policies for anon/authenticated API clients. Server-side DB owner retains access.
+    with engine.begin() as connection:
+        connection.exec_driver_sql(
+            "ALTER TABLE public.business_extra_emails ENABLE ROW LEVEL SECURITY"
+        )
 
 app = FastAPI(
     title="Cairns Backpacker Jobs",
@@ -95,6 +101,8 @@ app = FastAPI(
     redoc_url="/redoc" if MODE == "local" else None,
     openapi_url="/openapi.json" if MODE == "local" else None,
 )
+
+app.state.accounts_enabled = bool(MODE == "staging" and STAGING_ENABLE_ACCOUNTS)
 
 if MODE == "staging":
     from app.middleware.staging_gate import StagingGateMiddleware

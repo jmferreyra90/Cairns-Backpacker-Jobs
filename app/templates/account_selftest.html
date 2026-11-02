@@ -2,8 +2,12 @@
 <html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Prueba de envío a mi email</title><link rel="stylesheet" href="{{url_for('static',path='css/style.css')}}">
 <style>main{max-width:800px;margin:2em auto}.preview{white-space:pre-wrap;overflow-wrap:anywhere;background:#fafafa;border:1px solid #ddd;border-radius:8px;padding:1rem}.note{border-left:4px solid #c48919;padding:8px 12px;background:#fff9e9}.ok{border-left-color:#39875c;background:#f1fff6}a.link{display:inline-block;margin:8px 10px 8px 0}</style>
-</head><body><main>
-<h1>Prueba privada: enviarme un email</h1><p><a href="/cuenta">← Mi cuenta</a> {% if draft_id %} · <a href="/cuenta/borradores/{{draft_id}}">Volver al borrador</a>{% endif %}</p>
+</head><body>
+{% include "partials/site_nav.html" %}
+<main>
+<h1>Prueba privada: enviarme un email</h1>
+{% include "partials/creator_links.html" %}
+<p><a href="/cuenta">← Mi cuenta</a> {% if draft_id %} · <a href="/cuenta/borradores/{{draft_id}}">Volver al borrador</a>{% endif %}</p>
 <p class="note"><strong>Importante:</strong> este paso contacta realmente a Gmail o Outlook, pero <strong>únicamente</strong> para enviar un email a tu propia dirección verificada. Ninguna empresa recibirá nada.</p>
 {% if error %}<p role="alert" class="note">{{error}}</p>{% endif %}
 {% if notice == 'email-distinto' %}<p class="note">Conectaste una dirección diferente a tu cuenta verificada. Usá la misma dirección para ambas cuentas.</p>{% endif %}
@@ -39,4 +43,5 @@
 </form>{% else %}<p>Conectá una cuenta con el mismo email para habilitar la confirmación.</p>{% endif %}
 </section>
 {% else %}<p>No hay un CV ficticio vigente. Volvé al borrador, subí un archivo de prueba y regresá.</p>{% endif %}
-</main></body></html>
+</main>{% include "partials/site_footer.html" %}
+</body></html>

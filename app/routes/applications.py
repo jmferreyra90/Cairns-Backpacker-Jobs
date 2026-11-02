@@ -15,6 +15,7 @@ from fastapi.templating import Jinja2Templates
 from app.constants import CATEGORY_LABELS
 from app.database import SessionLocal
 from app.models import Business
+from app.services.business_recipients import approved_recipients
 from app.services.email_builder import build_email_preview
 from app.services.campaign_queue import real_enabled
 from app.services.mail_api import SendError, send_self_test
@@ -24,7 +25,7 @@ from app.services.session_store import (
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
-MAX_BUSINESSES = 10
+MAX_BUSINESSES = 500
 MAX_CV_SIZE = 5 * 1024 * 1024
 
 
@@ -104,11 +105,15 @@ def render_review(request: Request, error=None):
     businesses = get_selected_businesses(",".join(str(x) for x in draft.business_ids))
     if len(businesses) != len(draft.business_ids):
         return HTMLResponse("La selección ya no está disponible.", status_code=410)
-    previews = [
-        build_email_preview(
-            b, draft.full_name, draft.phone, draft.subject, draft.cover_letter
-        ) for b in businesses
-    ]
+    with SessionLocal() as db:
+        preview_addresses = {b.id: approved_recipients(db, b) for b in businesses}
+    previews = []
+    for b in businesses:
+        preview = build_email_preview(b, draft.full_name, draft.phone, draft.subject, draft.cover_letter)
+        approved = preview_addresses[b.id]
+        if approved:
+            preview["to"] = ", ".join(approved)
+        previews.append(preview)
     return templates.TemplateResponse(
         request=request, name="review.html",
         context={

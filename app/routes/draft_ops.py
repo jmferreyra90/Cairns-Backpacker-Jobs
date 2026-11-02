@@ -151,8 +151,8 @@ def start_simulation(request: Request, draft_id: str, csrf_token: str = Form("")
         if not cv or aware(cv.expires_at) <= utc_now():
             return error_page(request, "Subí primero un CV ficticio que no haya vencido.")
         ids = list(dict.fromkeys(draft.business_ids))
-        if not 1 <= len(ids) <= 10:
-            return error_page(request, "El borrador debe contener entre 1 y 10 lugares.")
+        if not 1 <= len(ids) <= 500:
+            return error_page(request, "El borrador debe contener entre 1 y 500 lugares.")
         businesses = db.execute(select(Business).where(Business.id.in_(ids), Business.active.is_(True))).scalars().all()
         names = {b.id: b.name for b in businesses}
         if len(names) != len(ids):

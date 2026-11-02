@@ -1,6 +1,7 @@
 """LOCAL-ONLY business editor. Not an internet-facing authentication system."""
 import hmac
 import os
+import re
 import secrets
 from datetime import date, datetime, timezone
 
@@ -15,6 +16,8 @@ from app.constants import CATEGORIES, CATEGORY_LABELS, CONTACT_LABELS
 from app.database import SessionLocal
 from app.models import Business
 from app.models_directory import BusinessContactReview
+from app.models_business_emails import BusinessExtraEmail
+from app.services.business_recipients import is_real_address
 from app.services.directory_import import clean_url, import_new_only, parse_directory_csv, MAX_CSV_BYTES
 
 router = APIRouter(prefix="/admin/businesses")
@@ -61,10 +64,13 @@ def get_review(db, business_id):
 
 
 def render_form(request, business, review, error=None):
+    with SessionLocal() as db:
+        extra_emails = [r.email for r in db.query(BusinessExtraEmail).filter(BusinessExtraEmail.business_id == business.id).order_by(BusinessExtraEmail.id).all()] if business else []
     return templates.TemplateResponse(
         request=request, name="admin_business_form.html",
         context=dict(business=business, review=review, categories=CATEGORIES,
-                     statuses=CONTACT_LABELS, csrf=csrf_token(request), error=error),
+                     statuses=CONTACT_LABELS, csrf=csrf_token(request), error=error,
+                     extra_emails="\n".join(extra_emails)),
         status_code=400 if error else 200,
         headers={"Cache-Control": "no-store"},
     )
@@ -75,7 +81,11 @@ def admin_list(request: Request, _: bool = Depends(admin_only)):
     with SessionLocal() as db:
         rows = db.query(Business).order_by(Business.name).limit(2000).all()
         meta = {m.business_id: m for m in db.query(BusinessContactReview).all()}
-        records = [{"business": b, "review": meta.get(b.id)} for b in rows]
+        extra_counts = {}
+        for row in db.query(BusinessExtraEmail).all():
+            extra_counts[row.business_id] = extra_counts.get(row.business_id, 0) + 1
+        records = [{"business": b, "review": meta.get(b.id),
+                    "extra_count": extra_counts.get(b.id, 0)} for b in rows]
         return templates.TemplateResponse(
             request=request, name="admin_business_list.html",
             context=dict(records=records, status_labels=CONTACT_LABELS,
@@ -110,6 +120,7 @@ def save_business(
     address: str = Form(""),
     phone: str = Form(""),
     email: str = Form(""),
+    extra_emails: str = Form(""),
     website: str = Form(""),
     source_url: str = Form(""),
     evidence: str = Form(""),
@@ -119,6 +130,20 @@ def save_business(
     validate_csrf(request, csrf)
     name, manager_name, address, phone = [v.strip() for v in (name, manager_name, address, phone)]
     email, evidence, website = [v.strip() for v in (email, evidence, website)]
+    raw_extras = [x.strip() for x in re.split(r"[,;\n\r]+", extra_emails) if x.strip()]
+    if len(raw_extras) > 5:
+        raise HTTPException(status_code=400, detail="Maximum five additional addresses per business")
+    validated_extras = []
+    try:
+        for candidate in raw_extras:
+            address = validate_email(candidate, check_deliverability=False).normalized.lower()
+            if address in validated_extras:
+                continue
+            if len(address) > 254 or not is_real_address(address):
+                raise ValueError("Invalid recipient address")
+            validated_extras.append(address)
+    except (ValueError, EmailNotValidError):
+        raise HTTPException(status_code=400, detail="Invalid additional email address")
     if (not name or len(name) > 150 or category not in CATEGORIES or
             status_choice not in ("pending", "general_only", "portal_only", "blocked") or
             len(manager_name) > 150 or len(address) > 250 or len(phone) > 50 or
@@ -132,6 +157,9 @@ def save_business(
             email = validate_email(email, check_deliverability=False).normalized.lower()
     except (ValueError, EmailNotValidError):
         raise HTTPException(status_code=400, detail="Invalid email or URL")
+
+    if email and email.lower() in validated_extras:
+        validated_extras.remove(email.lower())
 
     with SessionLocal() as db:
         duplicate = db.query(Business).filter(
@@ -153,6 +181,10 @@ def save_business(
         business.manager_name, business.address, business.phone = manager_name or None, address or None, phone or None
         business.email, business.website, business.active = email or None, website or None, active
         business.email_verified, business.last_verified = False, None
+        # Saving a business unapproves all contact inboxes until reviewed together.
+        db.query(BusinessExtraEmail).filter(BusinessExtraEmail.business_id == business.id).delete(synchronize_session=False)
+        for address in validated_extras:
+            db.add(BusinessExtraEmail(business_id=business.id, email=address, approved=False))
         review.source_url, review.evidence = source_url, evidence or None
         review.status, review.approved_at = status_choice, None
         review.updated_at = datetime.now(timezone.utc)
@@ -175,7 +207,13 @@ def approve_business(request: Request, business_id: int,
             raise HTTPException(status_code=400, detail="Add a valid email, source and review notes first")
         if business.email.split("@")[-1].lower() in ("example.com", "example.org", "example.net", "test", "invalid", "localhost"):
             raise HTTPException(status_code=400, detail="Cannot approve sample domains")
-        # Manual assertion: only use a recruitment-specific address or explicitly confirmed application channel.
+        # General reception or published contact inboxes are allowed if the
+        # business accepts job enquiries there; no HR department required.
+        extras = db.query(BusinessExtraEmail).filter(BusinessExtraEmail.business_id == business.id).all()
+        if any(not is_real_address(row.email) for row in extras):
+            raise HTTPException(status_code=400, detail="Invalid additional contact address")
+        for row in extras:
+            row.approved = True
         business.email_verified = True
         business.last_verified = date.today()
         review.status = "approved"

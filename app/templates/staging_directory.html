@@ -17,8 +17,12 @@
   </style>
 </head>
 <body>
+{% include "partials/site_nav.html" %}
+
 <header>
   <h1>Buscá trabajo en Cairns</h1>
+{% include "partials/creator_links.html" %}
+
   {% if accounts_enabled %}<p><a href="/cuenta">Mi cuenta (beta privada)</a></p>{% endif %}
   <p>Explorá hoteles, restaurantes, bares y pubs de Cairns.</p>
 </header>
@@ -26,7 +30,7 @@
   <div class="preview-notice" role="status">
     <strong>Vista previa privada — no se envían emails</strong>
     {% if demo_enabled %}
-    <p>Podés seleccionar hasta 10 lugares y preparar una postulación de prueba. <strong>Usá únicamente datos y CV ficticios.</strong> No guardamos los datos del formulario ni habilitamos Gmail, Outlook o el envío.</p>
+    <p>Podés seleccionar lugares y preparar una postulación de prueba. <strong>Usá únicamente datos y CV ficticios.</strong> No guardamos los datos del formulario ni habilitamos Gmail, Outlook o el envío.</p>
     {% else %}
     <p>Estamos probando la web. Por ahora podés explorar negocios, pero no seleccionarlos ni subir tu CV.</p>
     {% endif %}
@@ -40,6 +44,12 @@
     {% endfor %}
   </div>
   <p id="displayCount" aria-live="polite"></p>
+  <div class="bulk-controls" aria-label="Controles de selección">
+    <button type="button" id="selectAllVisible">Seleccionar todos los visibles</button>
+    <button type="button" id="clearSelection">Quitar selección</button>
+    <span class="muted">Podés revisar la selección antes de continuar.</span>
+  </div>
+
   <section id="businessList">
     {% for business in businesses %}
       <article class="business-card" data-name="{{ business.name|lower }}" data-category="{{ business.category }}">
@@ -94,7 +104,7 @@
       document.getElementById('selectedLabel').textContent=count===1?'lugar seleccionado':'lugares seleccionados';
     }
     checkboxes.forEach(box=>box.addEventListener('change',()=>{
-      if(checkboxes.filter(b=>b.checked).length>10){box.checked=false;alert('Máximo 10 lugares por prueba.');}
+      if(checkboxes.filter(b=>b.checked).length>500){box.checked=false;alert('Máximo 500 lugares por selección.');}
       updateSelection();
     }));
     document.getElementById('continueButton').addEventListener('click',()=>{
@@ -102,8 +112,20 @@
       if(!ids.length){alert('Seleccioná al menos un lugar.');return;}
       window.location.href='/compose?ids='+encodeURIComponent(ids.join(','));
     });
+    document.getElementById('selectAllVisible').addEventListener('click',()=>{
+      const targets=checkboxes.filter(b=>!b.disabled&&!b.closest('.business-card').hidden);
+      const existing=checkboxes.filter(b=>b.checked).length;
+      const remaining=500-existing;
+      targets.filter(b=>!b.checked).slice(0,remaining).forEach(b=>b.checked=true);
+      updateSelection();
+      if(targets.some(b=>!b.checked))alert('Se alcanzó el máximo de 500 lugares.');
+    });
+    document.getElementById('clearSelection').addEventListener('click',()=>{
+      checkboxes.forEach(b=>b.checked=false);updateSelection();
+    });
     updateSelection();
   }
 </script>
+{% include "partials/site_footer.html" %}
 </body>
 </html>
